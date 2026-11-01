@@ -1,0 +1,841 @@
+<title>股市尋寶</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* Layout: 左側條件面板（可收合分組）＋ 右側 K 線圖與結果表；手機改為上下堆疊。 */
+:root{
+  --bg:#f0f2f1; --panel:#fbfcfb; --sunk:#e8ecea; --ink:#141b18; --ink2:#3b4743; --muted:#67736e;
+  --rule:#d4dbd8; --rule2:#e4e9e7;
+  --accent:#9a6a06; --accent-strong:#b57d08; --accent-soft:#f5ead2; --on-accent:#ffffff;
+  --up:#cf3a31; --down:#13895a; --up-soft:#fbe7e5; --down-soft:#e2f3ea;
+  --ma5:#7c5bd6; --ma20:#d9822b; --ma60:#2f7fc4;
+  --display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c100f; --panel:#141a18; --sunk:#101513; --ink:#ecf1ee; --ink2:#c2ccc7; --muted:#8b9792;
+  --rule:#26302c; --rule2:#1c2421;
+  --accent:#e2ad45; --accent-strong:#f0bf5a; --accent-soft:#2b2414; --on-accent:#1a1407;
+  --up:#f2584e; --down:#2fbf7c; --up-soft:#3a1a18; --down-soft:#12301f;
+  --ma5:#ab92f5; --ma20:#f0a052; --ma60:#62a9ec;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0c100f; --panel:#141a18; --sunk:#101513; --ink:#ecf1ee; --ink2:#c2ccc7; --muted:#8b9792;
+  --rule:#26302c; --rule2:#1c2421;
+  --accent:#e2ad45; --accent-strong:#f0bf5a; --accent-soft:#2b2414; --on-accent:#1a1407;
+  --up:#f2584e; --down:#2fbf7c; --up-soft:#3a1a18; --down-soft:#12301f;
+  --ma5:#ab92f5; --ma20:#f0a052; --ma60:#62a9ec;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.6}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .dn{color:var(--down)}
+
+/* top bar */
+.top{border-bottom:1px solid var(--rule);background:var(--panel)}
+.top-in{max-width:1440px;margin:0 auto;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{width:40px;height:40px;flex:none}
+.wordmark{display:grid;line-height:1.1}
+.wordmark b{font-family:var(--display);font-weight:900;font-size:23px;letter-spacing:.06em}
+.wordmark small{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--muted)}
+.tabs{display:flex;gap:2px;background:var(--sunk);border:1px solid var(--rule);border-radius:8px;padding:2px}
+.tabs button{border:0;background:none;padding:5px 14px;border-radius:6px;cursor:pointer;color:var(--ink2);font-weight:500}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.data-src{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge.demo{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.badge.real{border-color:var(--down);color:var(--down);background:var(--down-soft)}
+.btn{border:1px solid var(--rule);background:var(--panel);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.iconbtn{width:34px;height:34px;display:inline-grid;place-items:center;padding:0}
+.iconbtn svg{width:18px;height:18px}
+
+/* main grid */
+.app{max-width:1440px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;grid-template-columns:350px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:960px){.app{grid-template-columns:1fr}}
+
+/* sidebar */
+.side{display:grid;gap:12px;min-width:0}
+@media (min-width:961px){.side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-right:4px}}
+.box{background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+.box-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 14px 0}
+.lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.presets{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 12px}
+.preset{border:1px solid var(--rule);background:var(--bg);border-radius:999px;padding:3px 11px;font-size:13px;cursor:pointer}
+.preset:hover{border-color:var(--accent);color:var(--accent)}
+.preset.bear:hover{border-color:var(--down);color:var(--down)}
+.mode{padding:8px 14px 12px;display:grid;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;width:max-content;max-width:100%}
+.seg button{border:0;background:var(--panel);padding:4px 11px;font-size:13px;cursor:pointer;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.mode-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--ink2)}
+.linkbtn{border:0;background:none;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:12.5px}
+.linkbtn:hover{color:var(--ink)}
+
+details.grp{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+details.grp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none}
+details.grp>summary::-webkit-details-marker{display:none}
+details.grp>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);margin-left:auto;transition:transform .15s}
+details.grp[open]>summary::after{transform:rotate(-135deg)}
+.gname{font-weight:700;font-size:14.5px}
+.gsub{font-size:12px;color:var(--muted)}
+.gcount{font-family:var(--mono);font-size:11.5px;font-weight:600;min-width:20px;height:20px;display:inline-grid;place-items:center;border-radius:999px;background:var(--accent);color:var(--on-accent);padding:0 6px}
+.gcount[hidden]{display:none}
+details.grp.bear{border-color:color-mix(in srgb,var(--down) 45%,var(--rule))}
+details.grp.bear .gname{color:var(--down)}
+details.grp.bear .gcount{background:var(--down);color:var(--panel)}
+.conds{display:grid;border-top:1px solid var(--rule2)}
+.cond{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:7px 14px;border-bottom:1px solid var(--rule2);cursor:pointer;align-items:start}
+.cond:last-child{border-bottom:0}
+.cond:hover{background:var(--bg)}
+.cond input[type=checkbox]{margin:4px 0 0;accent-color:var(--accent);width:15px;height:15px}
+details.grp.bear .cond input[type=checkbox]{accent-color:var(--down)}
+.ct{font-size:13.5px;line-height:1.55;min-width:0}
+.ct .pin{width:4.2em;padding:0 4px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);font-family:var(--mono);font-size:12.5px;text-align:center;margin:0 2px}
+.ct .desc{display:none;color:var(--muted);font-size:12px;line-height:1.55;margin-top:3px}
+.cond:has(input:checked){background:var(--accent-soft)}
+details.grp.bear .cond:has(input:checked){background:var(--down-soft)}
+.cond:has(input:checked) .desc{display:block}
+.cond.na .ct{color:var(--muted)}
+.cond.na .ct::after{content:"（此資料未提供）";font-size:11.5px}
+
+/* main */
+.main{display:grid;gap:14px;min-width:0}
+.summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.big{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--accent);line-height:1}
+.summary .of{color:var(--ink2);font-size:14px}
+.active-chips{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+.achip{font-size:12px;border:1px solid var(--accent);color:var(--accent);border-radius:5px;padding:0 7px;background:var(--panel)}
+.achip.bear{border-color:var(--down);color:var(--down)}
+.notice{border:1px dashed var(--accent);background:var(--accent-soft);color:var(--ink2);border-radius:8px;padding:8px 12px;font-size:13px}
+.notice b{color:var(--ink)}
+
+.chartbox{padding:14px;display:grid;gap:10px;min-width:0}
+.ch-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.ch-name{font-size:20px;font-weight:700}
+.ch-name .num{font-size:15px;color:var(--muted);margin-right:6px}
+.ch-px{font-family:var(--mono);font-size:20px;font-weight:600}
+.ch-chg{font-family:var(--mono);font-size:14px;font-weight:600}
+.ch-meta{font-size:12.5px;color:var(--muted)}
+.futtag{font-size:11.5px;font-weight:700;border-radius:4px;padding:0 6px;background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2);font-family:var(--mono)}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+#chart{width:100%;height:430px;min-width:0}
+@media (max-width:640px){#chart{height:320px}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--rule2);border:1px solid var(--rule2);border-radius:8px;overflow:hidden}
+.fact{background:var(--panel);padding:7px 10px;display:grid;gap:1px}
+.fact .k{font-size:11.5px;color:var(--muted)}
+.fact .v{font-family:var(--mono);font-size:14px;font-weight:600}
+.hit{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:12.5px;color:var(--muted)}
+.hit .y{color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:0 6px}
+.hit .y.bear{background:var(--down-soft)}
+.hit .n{text-decoration:line-through;opacity:.7;padding:0 4px}
+
+.tbl-wrap{overflow:auto;max-height:560px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--rule2);white-space:nowrap;text-align:right}
+th{position:sticky;top:0;background:var(--panel);font-weight:500;color:var(--ink2);font-size:12.5px;cursor:pointer;user-select:none;z-index:1;box-shadow:inset 0 -1px 0 var(--rule)}
+th.l,td.l{text-align:left}
+th.on{color:var(--ink);font-weight:700}
+th .arr{font-size:10px;color:var(--accent);margin-left:2px}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.nm,td.ind{font-family:var(--sans)}
+td.ind{color:var(--muted);font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--bg)}
+tbody tr.sel td{background:var(--accent-soft)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.score{display:inline-flex;align-items:center;gap:6px}
+.score .bar{display:inline-block;height:6px;border-radius:3px;background:var(--accent);min-width:2px}
+.ftag{font-family:var(--sans);font-size:11px;font-weight:700;border:1px solid var(--ink2);border-radius:4px;padding:0 5px;color:var(--ink2)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted)}
+
+/* logic view */
+.logic{max-width:980px;margin:0 auto;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+.logic h1{font-family:var(--display);font-weight:900;font-size:30px;margin:0;letter-spacing:.03em;text-wrap:balance}
+.logic .lede{color:var(--ink2);max-width:66ch;margin:6px 0 0}
+.lg{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 22px;border-top:1px solid var(--rule);padding-top:16px}
+@media (max-width:700px){.lg{grid-template-columns:1fr}}
+.lg h2{font-size:17px;margin:0;font-family:var(--display);font-weight:700}
+.lg h2.bear{color:var(--down)}
+.lg .why{margin:0 0 8px;color:var(--ink2);max-width:66ch}
+.lg ul{margin:0;padding-left:18px;display:grid;gap:5px;color:var(--ink2);font-size:14px;max-width:70ch}
+.lg ul b{color:var(--ink);font-weight:600}
+.flow{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:grid;gap:10px}
+.flow ol{margin:0;padding-left:20px;display:grid;gap:6px;color:var(--ink2)}
+.warn{border-left:3px solid var(--accent);padding:4px 0 4px 14px;color:var(--ink2);font-size:13.5px;max-width:72ch}
+
+/* backtest view */
+.bt{max-width:1180px;margin:0 auto;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.bt h1{font-family:var(--display);font-weight:900;font-size:30px;margin:0;letter-spacing:.03em}
+.bt .lede{color:var(--ink2);max-width:70ch;margin:6px 0 0}
+.bt-panel{padding:14px 16px;display:grid;gap:12px}
+.bt-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px}
+.bt-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;font-size:13.5px;color:var(--ink2)}
+.bt-ctl select,.bt-ctl input{border:1px solid var(--rule);border-radius:6px;background:var(--panel);padding:3px 8px;margin-left:4px}
+.bt-ctl .seg{margin-left:4px;vertical-align:middle}
+.prog{height:4px;background:var(--rule2);border-radius:2px;overflow:hidden}
+.prog span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#btOut{display:grid;gap:12px;min-width:0}
+.bt-sum{display:grid;gap:6px}
+.bt-verdict{margin:0;color:var(--ink2);max-width:75ch}
+.bt-h{font-size:15px;margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 40 40">
+    <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--ink)"/>
+    <path d="M6 22.5 H34 Q31 33 20 33 Q9 33 6 22.5 Z" fill="var(--accent)"/>
+    <path d="M6 22.5 H34" stroke="var(--accent-strong)" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="13" y1="12" x2="13" y2="21" stroke="var(--down)" stroke-width="1.4"/>
+    <rect x="11.2" y="14" width="3.6" height="5" rx=".6" fill="var(--down)"/>
+    <line x1="20" y1="9" x2="20" y2="21" stroke="var(--up)" stroke-width="1.4"/>
+    <rect x="18.2" y="11" width="3.6" height="7.5" rx=".6" fill="var(--up)"/>
+    <line x1="27" y1="4.5" x2="27" y2="21" stroke="var(--accent-strong)" stroke-width="1.4"/>
+    <rect x="25.2" y="6.5" width="3.6" height="11" rx=".6" fill="var(--accent-strong)"/>
+    <circle cx="15" cy="27.5" r="1.1" fill="var(--ink)"/><circle cx="20.5" cy="29" r="1.1" fill="var(--ink)"/><circle cx="25.5" cy="27" r="1.1" fill="var(--ink)"/>
+  </symbol>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <svg role="img" aria-label="股市尋寶 Logo"><use href="#logo"/></svg>
+      <div class="wordmark"><b>股市尋寶</b><small>TREASURE · 盤後選股</small></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tab-screen" aria-selected="true">選股</button>
+      <button role="tab" id="tab-bt" aria-selected="false">回測</button>
+      <button role="tab" id="tab-logic" aria-selected="false">選股邏輯</button>
+    </nav>
+    <div class="data-src">
+      <span id="srcBadge" class="badge demo">示範資料</span>
+      <span id="asof" class="num"></span>
+      <label class="btn primary" for="file">載入 data.json</label>
+      <input id="file" type="file" accept=".json,application/json" hidden>
+      <button class="btn iconbtn" id="themeBtn" title="切換深淺色" aria-label="切換深淺色"></button>
+    </div>
+  </div>
+</header>
+
+<div id="view-screen" class="app">
+  <aside class="side">
+    <div class="box">
+      <div class="box-h"><span class="lbl">策略組合</span><button class="linkbtn" id="clearAll">全部清除</button></div>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="box">
+      <div class="box-h"><span class="lbl">組合方式</span><span class="foot" id="selCount">未選條件</span></div>
+      <div class="mode">
+        <div class="seg" id="modeSeg">
+          <button data-m="all" aria-pressed="true">全部符合</button>
+          <button data-m="any" aria-pressed="false">任一符合</button>
+          <button data-m="atl" aria-pressed="false">至少 N 項</button>
+        </div>
+        <div class="mode-row" id="atlRow" hidden>符合至少 <input id="atlN" class="pin num" type="number" min="1" value="3" style="width:4em;padding:1px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);text-align:center"> 項條件</div>
+      </div>
+    </div>
+    <div id="groups" class="side" style="position:static;max-height:none;overflow:visible;padding:0"></div>
+  </aside>
+
+  <main class="main">
+    <div class="summary">
+      <span class="big" id="nHit">0</span>
+      <span class="of" id="nOf">檔符合</span>
+      <div class="active-chips" id="activeChips"></div>
+    </div>
+    <div class="notice" id="demoNotice"><b>目前是示範資料：</b>股票名稱與價格都是隨機產生，只用來展示功能。執行 <span class="num">taojin_data.py</span> 產生 data.json 後，按右上「載入 data.json」就會換成真實盤後資料。</div>
+
+    <section class="box chartbox" aria-label="K 線圖">
+      <div class="ch-head">
+        <span class="ch-name" id="chName">—</span>
+        <span class="ch-px" id="chPx"></span>
+        <span class="ch-chg" id="chChg"></span>
+        <span class="ch-meta" id="chMeta"></span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ma5)"></i>MA5 <b id="lg5"></b></span>
+        <span><i style="background:var(--ma20)"></i>MA20 <b id="lg20"></b></span>
+        <span><i style="background:var(--ma60)"></i>MA60 <b id="lg60"></b></span>
+      </div>
+      <div id="chart"></div>
+      <div class="facts" id="facts"></div>
+      <div class="hit" id="hits"></div>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="foot">點表格中的股票切換 K 線圖；點欄位名稱排序。紅漲綠跌，成交量單位為張。</p>
+  </main>
+</div>
+
+<div id="view-bt" class="bt" hidden>
+  <div>
+    <h1>策略回測</h1>
+    <p class="lede">用「選股」分頁目前勾選的條件和組合方式，回頭檢查過去每一天：如果照這組條件選股、隔天開盤買進，持有 5、10、20 天的結果如何，並和同期全市場平均比較。</p>
+  </div>
+  <div class="box bt-panel">
+    <div class="bt-row"><span class="lbl">回測條件</span><span class="foot">組合方式：<b id="btMode"></b></span></div>
+    <div class="active-chips" id="btConds"></div>
+    <div class="bt-ctl">
+      <label>回測期間
+        <select id="btDays"><option value="60">近 60 個交易日</option><option value="120">近 120 個交易日</option><option value="180" selected>近 180 個交易日</option><option value="360">近 360 個交易日</option><option value="9999">全部資料</option></select>
+      </label>
+      <span>方向
+        <span class="seg" id="btDir"><button data-d="auto" aria-pressed="true">自動</button><button data-d="long" aria-pressed="false">做多</button><button data-d="short" aria-pressed="false">放空</button></span>
+      </span>
+      <label>交易成本 <input id="btCost" type="number" step="0.01" min="0" value="0.585" class="num" style="width:5.5em"> %</label>
+      <button class="btn primary" id="btGo">開始回測</button>
+    </div>
+    <div class="prog" id="btProg" hidden><span></span></div>
+    <p class="foot" style="margin:0">交易成本 0.585% 是現股來回的手續費（0.1425% × 2）加證交稅 0.3%；用股票期貨可以調低。方向選「自動」時，空方條件佔多數就以放空計算。</p>
+  </div>
+  <div id="btOut"><div class="empty">按「開始回測」查看結果。</div></div>
+</div>
+
+<div id="view-logic" class="logic" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="data.js" onerror="void 0"></script>
+<script>
+"use strict";
+/* ═════════════ 儲存 ═════════════ */
+const store={get(k,d){try{const v=localStorage.getItem("taojin."+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem("taojin."+k,JSON.stringify(v))}catch(e){}}};
+
+/* ═════════════ 指標計算 ═════════════ */
+function sma(a,n){const o=new Array(a.length).fill(null);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
+function ema(a,n){const o=new Array(a.length).fill(null);const k=2/(n+1);let e=null;for(let i=0;i<a.length;i++){e=e==null?a[i]:a[i]*k+e*(1-k);o[i]=e}return o}
+function rsi(c,n=14){const o=new Array(c.length).fill(null);let g=0,l=0;for(let i=1;i<c.length;i++){const d=c[i]-c[i-1],up=Math.max(d,0),dn=Math.max(-d,0);
+  if(i<=n){g+=up;l+=dn;if(i===n){g/=n;l/=n;o[i]=l===0?100:100-100/(1+g/l)}}else{g=(g*(n-1)+up)/n;l=(l*(n-1)+dn)/n;o[i]=l===0?100:100-100/(1+g/l)}}return o}
+function kd(h,l,c,n=9){const K=[],D=[];let k=50,d=50;for(let i=0;i<c.length;i++){const s=Math.max(0,i-n+1);let hh=-Infinity,ll=Infinity;
+  for(let j=s;j<=i;j++){if(h[j]>hh)hh=h[j];if(l[j]<ll)ll=l[j]}const rsv=hh===ll?50:(c[i]-ll)/(hh-ll)*100;k=k*2/3+rsv/3;d=d*2/3+k/3;K.push(k);D.push(d)}return{K,D}}
+function macd(c){const e12=ema(c,12),e26=ema(c,26);const dif=c.map((_,i)=>e12[i]-e26[i]);const dea=ema(dif,9);return dif.map((v,i)=>v-dea[i])}
+function stdev(a,n,i){let s=0,q=0;for(let j=i-n+1;j<=i;j++){s+=a[j];q+=a[j]*a[j]}const m=s/n;return Math.sqrt(Math.max(q/n-m*m,0))}
+
+function prep(raw){
+  const k=raw.k;const S={id:raw.id,n:raw.n,m:raw.m||"",ind:raw.ind||"",fut:!!raw.fut,
+    ix:raw.ix||[],wt:raw.wt,f:raw.f,t:raw.t,dl:raw.dl,mg:raw.mg,sh:raw.sh,rev:raw.rev,eps:raw.eps,gm:raw.gm,pe:raw.pe,pb:raw.pb,dy:raw.dy};
+  S.d=k.map(r=>{const s=String(r[0]);return s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8)});
+  S.o=k.map(r=>r[1]);S.h=k.map(r=>r[2]);S.l=k.map(r=>r[3]);S.c=k.map(r=>r[4]);S.v=k.map(r=>r[5]);
+  S.i=S.c.length-1;S._sma={};S.ma={};for(const n of [5,10,20,60,120,240])S.ma[n]=sma(S.c,n);
+  S.vma={5:sma(S.v,5),20:sma(S.v,20)};const x=kd(S.h,S.l,S.c);S.K=x.K;S.D=x.D;S.rsi=rsi(S.c);S.osc=macd(S.c);
+  const i=S.i;S.close=S.c[i];S.prev=i>0?S.c[i-1]:S.c[i];S.chg=(S.close/S.prev-1)*100;
+  S.vr=i>5?S.v[i]/((S.v[i-1]+S.v[i-2]+S.v[i-3]+S.v[i-4]+S.v[i-5])/5||1):null;
+  S.val20=(()=>{let s=0,n=0;for(let j=Math.max(0,i-19);j<=i;j++){s+=S.c[j]*S.v[j];n++}return s*1000/n/1e8})();
+  return S}
+
+/* ═════════════ 小工具 ═════════════ */
+const at=(a,S,k=0)=>a?a[S.i-k]:null;
+function hh(a,S,n,off=0){let m=-Infinity;for(let j=S.i-off-n+1;j<=S.i-off;j++)if(j>=0&&a[j]>m)m=a[j];return m}
+function ll(a,S,n,off=0){let m=Infinity;for(let j=S.i-off-n+1;j<=S.i-off;j++)if(j>=0&&a[j]<m)m=a[j];return m}
+function streak(a,sign){if(!a||!a.length)return 0;let n=0;for(let j=a.length-1;j>=0;j--){if(sign>0?a[j]>0:a[j]<0)n++;else break}return n}
+const sum=(a,n)=>a?a.slice(-n).reduce((x,y)=>x+y,0):null;
+const ret=(S,n)=>S.i>=n?(S.c[S.i]/S.c[S.i-n]-1)*100:null;
+const has=(S,k)=>Array.isArray(S[k])?S[k].length>0:S[k]!=null;
+
+/* ═════════════ 條件定義 ═════════════ */
+const GROUPS=[
+ {id:"fund",name:"基本面",sub:"營收、獲利、評價"},
+ {id:"tech",name:"技術面",sub:"均線、KD、MACD、RSI、布林"},
+ {id:"chip",name:"籌碼面",sub:"法人、融資券"},
+ {id:"mom",name:"趨勢動能",sub:"多頭結構與相對強度"},
+ {id:"pat",name:"型態",sub:"整理突破、K 線型態"},
+ {id:"vol",name:"成交量",sub:"量能與流動性"},
+ {id:"fut",name:"指數成分與商品",sub:"0050、中型100、富時、股期、權證"},
+ {id:"bear",name:"空方動能",sub:"弱勢股、可放空標的",bear:true},
+];
+const C=[
+ // 基本面
+ {id:"rev_yoy",g:"fund",t:"最新月營收年增率 ≥ {a}%",p:{a:20},need:"rev",d:"營收是最早公布的基本面數字（每月 10 日前），年增率可排除季節性。",f:(S,P)=>{const r=S.rev.at(-1);return r[2]!=null&&r[2]>=P.a}},
+ {id:"rev_streak",g:"fund",t:"月營收連續 {a} 個月年增",p:{a:3},need:"rev",d:"連續成長比單月爆發可靠，代表需求是持續的。",f:(S,P)=>{const r=S.rev.slice(-P.a);return r.length>=P.a&&r.every(x=>x[2]!=null&&x[2]>0)}},
+ {id:"rev_high",g:"fund",t:"月營收創近 12 個月新高",p:{},need:"rev",d:"營收創新高常是股價創新高的前導訊號。",f:S=>{const r=S.rev.slice(-12);return r.length>=6&&r.at(-1)[1]>=Math.max(...r.map(x=>x[1]))}},
+ {id:"eps4",g:"fund",t:"近四季 EPS 合計 ≥ {a} 元",p:{a:3},need:"eps",d:"確認公司真的賺錢，排除只有題材的股票。",f:(S,P)=>S.eps.length>=4&&sum(S.eps,4)>=P.a},
+ {id:"gm_up",g:"fund",t:"毛利率連續 2 季成長",p:{},need:"gm",d:"毛利率上升代表產品組合變好或議價能力提升。",f:S=>{const g=S.gm;return g.length>=3&&g.at(-1)>g.at(-2)&&g.at(-2)>g.at(-3)}},
+ {id:"pe_low",g:"fund",t:"本益比 ≤ {a} 倍",p:{a:15},need:"pe",d:"評價保護。建議搭配成長條件，避免挑到便宜但沒成長的股票。",f:(S,P)=>S.pe>0&&S.pe<=P.a},
+ {id:"dy_high",g:"fund",t:"殖利率 ≥ {a}%",p:{a:4},need:"dy",d:"存股與防守型選股常用。",f:(S,P)=>S.dy>=P.a},
+ // 技術面
+ {id:"above_ma",g:"tech",t:"收盤站上 {a} 日均線",p:{a:20},d:"最基本的多方位置確認。20 日為月線、60 日為季線。",f:(S,P)=>{const m=smaN(S,P.a)[S.i];return m!=null&&S.close>m}},
+ {id:"ma_turn",g:"tech",t:"{a} 日均線由下彎轉上揚",p:{a:20},d:"均線方向改變是趨勢轉折的早期訊號。",f:(S,P)=>{const m=smaN(S,P.a),i=S.i;return m[i-2]!=null&&m[i]>m[i-1]&&m[i-1]<=m[i-2]}},
+ {id:"kd_gc",g:"tech",t:"KD 黃金交叉（K 值 < {a}）",p:{a:50},d:"K 由下往上穿越 D。限定低檔交叉可過濾高檔鈍化的假訊號。",f:(S,P)=>{const i=S.i;return S.K[i]>S.D[i]&&S.K[i-1]<=S.D[i-1]&&S.K[i]<P.a}},
+ {id:"macd_up",g:"tech",t:"MACD 柱狀體由負翻正",p:{},d:"DIF 上穿訊號線，中期動能轉強。",f:S=>S.osc[S.i]>0&&S.osc[S.i-1]<=0},
+ {id:"rsi_band",g:"tech",t:"RSI(14) 介於 {a} ~ {b}",p:{a:50,b:70},d:"50 以上代表多方掌控，70 以下保留上漲空間，避免追在過熱區。",f:(S,P)=>{const r=S.rsi[S.i];return r>=P.a&&r<=P.b}},
+ {id:"bb_break",g:"tech",t:"收盤突破布林通道上軌",p:{},d:"價格突破 20 日均線 + 2 倍標準差，波動擴大往上。",f:S=>{const m=S.ma[20][S.i];return m!=null&&S.close>m+2*stdev(S.c,20,S.i)}},
+ // 籌碼面
+ {id:"fi_buy",g:"chip",t:"外資連續買超 {a} 日",p:{a:3},need:"f",d:"外資資金量大，連續買超代表有計畫地布局。",f:(S,P)=>streak(S.f,1)>=P.a},
+ {id:"it_buy",g:"chip",t:"投信連續買超 {a} 日",p:{a:3},need:"t",d:"投信偏好中小型成長股，連買常帶動一段行情（俗稱投信認養）。",f:(S,P)=>streak(S.t,1)>=P.a},
+ {id:"inst_sum",g:"chip",t:"三大法人近 5 日合計買超 ≥ {a} 張",p:{a:1000},need:"f",d:"外資＋投信＋自營商合計，看整體法人方向。",f:(S,P)=>(sum(S.f,5)||0)+(sum(S.t,5)||0)+(sum(S.dl,5)||0)>=P.a},
+ {id:"it_ratio",g:"chip",t:"投信近 5 日買超佔成交量 ≥ {a}%",p:{a:5},need:"t",d:"用比例取代張數，小型股也能公平比較。",f:(S,P)=>{const v=S.v.slice(-5).reduce((x,y)=>x+y,0);return v>0&&sum(S.t,5)/v*100>=P.a}},
+ {id:"mg_clean",g:"chip",t:"近 5 日融資減少、股價上漲",p:{},need:"mg",d:"散戶槓桿下降而股價上漲，代表籌碼往法人或大戶集中（籌碼沉澱）。",f:S=>S.mg.length>=6&&S.mg.at(-1)<S.mg.at(-6)&&ret(S,5)>0},
+ {id:"short_r",g:"chip",t:"券資比 ≥ {a}%",p:{a:20},need:"sh",d:"融券／融資。比例高且股價走強時有軋空潛力。",f:(S,P)=>S.mg.at(-1)>0&&S.sh.at(-1)/S.mg.at(-1)*100>=P.a},
+ // 趨勢動能
+ {id:"ma_bull",g:"mom",t:"均線多頭排列（5 > 10 > 20 > 60）",p:{},d:"短中長期成本都在墊高，是趨勢交易最核心的條件。",f:S=>{const m=S.ma,i=S.i;return m[60][i]!=null&&m[5][i]>m[10][i]&&m[10][i]>m[20][i]&&m[20][i]>m[60][i]}},
+ {id:"new_high",g:"mom",t:"收盤創 {a} 日新高",p:{a:60},d:"新高代表上方沒有套牢賣壓。",f:(S,P)=>S.close>=hh(S.c,S,P.a)&&S.i>=P.a-1},
+ {id:"rs_top",g:"mom",t:"近 {a} 日漲幅在全市場前 {b}%",p:{a:20,b:10},cross:true,d:"相對強度（RS）：強者恆強，挑漲得比大盤和同業都好的股票。",f:(S,P,X)=>X.rs(P.a)[S.id]>=100-P.b},
+ {id:"above_year",g:"mom",t:"站上年線且年線上揚",p:{},d:"240 日均線是長期多空分界，年線向上代表長期趨勢偏多。",f:S=>{const m=S.ma[240],i=S.i;return m[i-5]!=null&&S.close>m[i]&&m[i]>m[i-5]}},
+ {id:"near_high",g:"mom",t:"距 52 週高點 {a}% 以內",p:{a:5},d:"貼近一年高點的股票，突破後容易延續。",f:(S,P)=>{const h=hh(S.h,S,Math.min(250,S.i+1));return (h-S.close)/h*100<=P.a}},
+ {id:"ret_n",g:"mom",t:"近 {a} 日漲幅 ≥ {b}%",p:{a:20,b:15},d:"絕對動能門檻。",f:(S,P)=>ret(S,P.a)>=P.b},
+ // 型態
+ {id:"box_break",g:"pat",t:"整理 {a} 日（振幅 ≤ {b}%）後突破",p:{a:20,b:15},d:"箱型整理後帶量突破上緣，是最經典的起漲型態。",f:(S,P)=>{if(S.i<P.a+1)return false;const H=hh(S.h,S,P.a,1),L=ll(S.l,S,P.a,1);return (H/L-1)*100<=P.b&&S.close>H}},
+ {id:"squeeze",g:"pat",t:"均線糾結後向上發散",p:{},d:"5、10、20 日均線前幾天擠在 2% 內，今天開口向上，代表多空平衡被打破。",f:S=>{const m=S.ma,i=S.i;if(m[20][i-5]==null)return false;let tight=false;for(let k=3;k<=6;k++){const a=[m[5][i-k],m[10][i-k],m[20][i-k]];if((Math.max(...a)/Math.min(...a)-1)*100<2)tight=true}return tight&&m[5][i]>m[10][i]&&m[10][i]>m[20][i]&&S.close>m[5][i]}},
+ {id:"pullback",g:"pat",t:"回測 20 日均線不破",p:{},d:"多頭趨勢中拉回月線附近止跌，風險報酬比較好的進場點。",f:S=>{const m20=S.ma[20],m60=S.ma[60],i=S.i;return m60[i]!=null&&m20[i]>m20[i-3]&&m20[i]>m60[i]&&S.l[i]<=m20[i]*1.015&&S.close>m20[i]}},
+ {id:"long_red",g:"pat",t:"長紅 K（實體 ≥ {a}%）",p:{a:4},d:"實體大於一定比例的紅 K，代表買方一整天主導。",f:(S,P)=>(S.close-S.o[S.i])/S.prev*100>=P.a},
+ {id:"gap_up",g:"pat",t:"跳空向上缺口",p:{},d:"今日最低高於昨日最高，缺口未補前常成為支撐。",f:S=>S.l[S.i]>S.h[S.i-1]},
+ {id:"spring",g:"pat",t:"破底穿頭（跌破 {c} 日低點且量 ≥ 5 日均量 {b} 倍，{a} 日內站上大量 K 高點）",p:{a:10,b:2,c:60},
+  d:"先跌破近期最低點並爆出大量，代表停損賣壓一次出清；之後幾天內收盤站回這根大量 K 的最高點，代表空方力竭、多方接手，是常見的底部反轉型態。只在首次站上的那一天觸發。",
+  f:(S,P)=>{const i=S.i;for(let t0=i-1;t0>=i-P.a;t0--){if(t0<P.c+5)break;
+    let lo=Infinity;for(let j=t0-P.c;j<t0;j++)if(S.l[j]<lo)lo=S.l[j];if(!(S.l[t0]<lo))continue;
+    let av=0;for(let j=t0-5;j<t0;j++)av+=S.v[j];av/=5;if(S.v[t0]<av*P.b)continue;
+    const H=S.h[t0];if(S.close>H&&S.c[i-1]<=H)return true}return false}},
+ {id:"higher_lows",g:"pat",t:"底部墊高（三段低點遞升）",p:{},d:"最近 30 天切三段，每段低點都比前一段高。",f:S=>{if(S.i<30)return false;const a=ll(S.l,S,10,20),b=ll(S.l,S,10,10),c=ll(S.l,S,10,0);return a<b&&b<c}},
+ // 成交量
+ {id:"vol_surge",g:"vol",t:"成交量 ≥ 前 {a} 日均量 {b} 倍",p:{a:5,b:2},d:"量是價的先行指標，突破時有量才可信。",f:(S,P)=>{if(S.i<P.a)return false;let s=0;for(let j=1;j<=P.a;j++)s+=S.v[S.i-j];return S.v[S.i]>=s/P.a*P.b}},
+ {id:"up_vol",g:"vol",t:"價漲量增",p:{},d:"收紅且量比昨天大，健康的上漲。",f:S=>S.close>S.prev&&S.v[S.i]>S.v[S.i-1]},
+ {id:"vol_dry",g:"vol",t:"量縮整理（5 日均量 ≤ 20 日均量 {a}%）",p:{a:60},d:"整理期量縮代表浮額減少，常出現在突破之前。可搭配「整理後突破」使用。",f:(S,P)=>{const a=S.vma[5][S.i],b=S.vma[20][S.i];return b&&a<=b*P.a/100}},
+ {id:"val_min",g:"vol",t:"20 日均成交值 ≥ {a} 億元",p:{a:1},d:"流動性門檻，避免選到買不進、賣不掉的冷門股。",f:(S,P)=>S.val20>=P.a},
+ {id:"vol_min",g:"vol",t:"今日成交量 ≥ {a} 張",p:{a:1000},d:"單日量能門檻。",f:(S,P)=>S.v[S.i]>=P.a},
+ // 股票期貨
+ {id:"in_tw50",g:"fut",t:"0050 成分股（台灣50指數）",p:{},list:"tw50",d:"市值最大的 50 檔，流動性最好、外資持股高，適合大資金與穩健操作。名單來自 0050 的持股，每季調整。",f:S=>S.ix.includes("tw50")},
+ {id:"in_mid100",g:"fut",t:"中型100 成分股（0051）",p:{},list:"mid100",d:"市值第 51～150 名，成長性與波動都比權值股高，常是投信布局的主戰場。名單來自 0051 的持股。",f:S=>S.ix.includes("mid100")},
+ {id:"in_ftse",g:"fut",t:"新加坡富時台灣指數成分股",p:{},list:"ftse",d:"新加坡交易所富台期的標的指數。外資常用富台期避險或套利，成分股較容易受外資期現貨操作影響。名單需自行維護在 lists/ftse.txt。",f:S=>S.ix.includes("ftse")},
+ {id:"has_wt",g:"fut",t:"有發行權證",p:{},list:"warrant",d:"有權證代表券商願意避險造市，流動性通常不差；也可以改用權證以小搏大。",f:S=>S.wt===true},
+ {id:"has_fut",g:"fut",t:"有股票期貨",p:{},d:"可用股期做多或放空，槓桿約 7 倍、沒有融券回補限制。空方選股建議一定勾選。",f:S=>S.fut},
+ {id:"no_fut",g:"fut",t:"沒有股票期貨",p:{},d:"多為中小型股，籌碼較輕、波動較大。",f:S=>!S.fut},
+ // 空方動能
+ {id:"ma_bear",g:"bear",t:"均線空頭排列（5 < 10 < 20 < 60）",p:{},d:"各期成本都在下降，反彈容易遇到套牢賣壓。",f:S=>{const m=S.ma,i=S.i;return m[60][i]!=null&&m[5][i]<m[10][i]&&m[10][i]<m[20][i]&&m[20][i]<m[60][i]}},
+ {id:"break_ma",g:"bear",t:"今日跌破 {a} 日均線",p:{a:60},d:"昨天還在均線上、今天收在均線下，季線跌破常是波段轉弱訊號。",f:(S,P)=>{const m=smaN(S,P.a),i=S.i;return m[i-1]!=null&&S.close<m[i]&&S.c[i-1]>=m[i-1]}},
+ {id:"below_ma",g:"bear",t:"收盤在 {a} 日均線之下且均線下彎",p:{a:20},d:"位置與方向都偏空。",f:(S,P)=>{const m=smaN(S,P.a),i=S.i;return m[i-3]!=null&&S.close<m[i]&&m[i]<m[i-3]}},
+ {id:"new_low",g:"bear",t:"收盤創 {a} 日新低",p:{a:60},d:"新低代表上方每一價位都有套牢者，反彈就是賣壓。",f:(S,P)=>S.i>=P.a-1&&S.close<=ll(S.c,S,P.a)},
+ {id:"rs_bot",g:"bear",t:"近 {a} 日漲幅在全市場後 {b}%",p:{a:20,b:10},cross:true,d:"相對弱勢：弱者恆弱，空方首選。",f:(S,P,X)=>X.rs(P.a)[S.id]<=P.b},
+ {id:"fi_sell",g:"bear",t:"外資連續賣超 {a} 日",p:{a:3},need:"f",d:"外資有計畫地調節。",f:(S,P)=>streak(S.f,-1)>=P.a},
+ {id:"it_sell",g:"bear",t:"投信連續賣超 {a} 日",p:{a:3},need:"t",d:"投信棄養，常見於季底作帳結束後。",f:(S,P)=>streak(S.t,-1)>=P.a},
+ {id:"mg_up_dn",g:"bear",t:"近 5 日融資增加、股價下跌",p:{},need:"mg",d:"散戶越跌越買（接刀），籌碼變亂，下跌容易延續。",f:S=>S.mg.length>=6&&S.mg.at(-1)>S.mg.at(-6)&&ret(S,5)<0},
+ {id:"macd_dn",g:"bear",t:"MACD 柱狀體由正翻負",p:{},d:"中期動能轉弱。",f:S=>S.osc[S.i]<0&&S.osc[S.i-1]>=0},
+ {id:"kd_dc",g:"bear",t:"KD 死亡交叉（K 值 > {a}）",p:{a:50},d:"高檔死叉比低檔死叉更有意義。",f:(S,P)=>{const i=S.i;return S.K[i]<S.D[i]&&S.K[i-1]>=S.D[i-1]&&S.K[i]>P.a}},
+ {id:"black_vol",g:"bear",t:"爆量長黑（量 ≥ 5 日均量 {a} 倍、跌 ≥ {b}%）",p:{a:1.5,b:3},d:"大量收長黑，代表有人不計價賣出，常是出貨訊號。",f:(S,P)=>{const i=S.i;const av=(S.v[i-1]+S.v[i-2]+S.v[i-3]+S.v[i-4]+S.v[i-5])/5;return S.v[i]>=av*P.a&&S.chg<=-P.b&&S.close<S.o[i]}},
+ {id:"box_down",g:"bear",t:"整理 {a} 日（振幅 ≤ {b}%）後跌破",p:{a:20,b:15},d:"跌破箱型下緣，原本的支撐變成壓力。",f:(S,P)=>{if(S.i<P.a+1)return false;const H=hh(S.h,S,P.a,1),L=ll(S.l,S,P.a,1);return (H/L-1)*100<=P.b&&S.close<L}},
+ {id:"lower_highs",g:"bear",t:"高點逐步下移（三段高點遞降）",p:{},d:"最近 30 天切三段，每段高點都比前一段低。",f:S=>{if(S.i<30)return false;const a=hh(S.h,S,10,20),b=hh(S.h,S,10,10),c=hh(S.h,S,10,0);return a>b&&b>c}},
+ {id:"rev_neg",g:"bear",t:"月營收年增率轉負",p:{},need:"rev",d:"上月還在成長、這個月轉衰退，基本面轉弱的早期訊號。",f:S=>{const r=S.rev;return r.length>=2&&r.at(-1)[2]<0&&r.at(-2)[2]>=0}},
+];
+const CM=Object.fromEntries(C.map(c=>[c.id,c]));
+
+const PRESETS=[
+ {name:"強勢多頭",sel:{ma_bull:{},new_high:{a:60},vol_surge:{a:5,b:1.5},val_min:{a:1}}},
+ {name:"法人認養",sel:{it_buy:{a:3},inst_sum:{a:500},above_ma:{a:20},val_min:{a:0.5}}},
+ {name:"成長動能",sel:{rev_yoy:{a:20},rev_streak:{a:3},above_year:{},val_min:{a:0.5}}},
+ {name:"盤整突破",sel:{box_break:{a:20,b:15},vol_surge:{a:5,b:2},val_min:{a:0.5}}},
+ {name:"拉回買點",sel:{pullback:{},ma_bull:{},rsi_band:{a:40,b:65}}},
+ {name:"空方弱勢",bear:true,sel:{ma_bear:{},new_low:{a:20},fi_sell:{a:3},has_fut:{}}},
+ {name:"出貨警訊",bear:true,sel:{black_vol:{a:1.5,b:3},has_fut:{}}},
+];
+
+/* ═════════════ 示範資料（隨機產生） ═════════════ */
+function demoData(){
+  let seed=20261023;const rnd=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const gauss=()=>{let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const tick=p=>p<10?.01:p<50?.05:p<100?.1:p<500?.5:p<1000?1:5;
+  const rt=p=>{const t=tick(p);return Math.round(Math.round(p/t)*t*100)/100};
+  const N=420,OFF=N-260,dates=[];let d=new Date(Date.UTC(2026,9,23));
+  while(dates.length<N){const w=d.getUTCDay();if(w&&w<6)dates.unshift(+d.toISOString().slice(0,10).replace(/-/g,""));d.setUTCDate(d.getUTCDate()-1)}
+  const inds=["半導體","電子零組件","電腦週邊","光電","通信網路","航運","金融","生技醫療","鋼鐵","塑化","電機機械","食品"];
+  const regimes=["bull","bull_vol","box_break","bear","bear_fut","squeeze","range","pullback","v","weak","spring","bear"];
+  const stocks=[];let idx=0;
+  for(const ind of inds)for(const ch of "甲乙丙丁"){
+    const rg=regimes[idx%regimes.length];idx++;
+    let p=15+Math.exp(gauss()*0.9)*90,anchor=p;const base=300+rnd()*15000;const k=[];const rets=[];
+    for(let t=0;t<N;t++){
+      const u=t-OFF;let dr=0,sd=0.016;
+      if(u===0)anchor=p;
+      if(u>=0){
+        if(rg.startsWith("bull"))dr=u>130?0.0042:0.0003;
+        if(rg==="bear")dr=u>130?-0.0038:0.0002;
+        if(rg==="bear_fut")dr=u>110?-0.0042:0;
+        if(rg==="weak"){dr=-0.0016;sd=0.02}
+        if(rg==="v")dr=u<170?-0.003:0.0055;
+        if(rg==="pullback")dr=u<235?0.004:(u<259?-0.007:0.01);
+        if(rg==="squeeze"){sd=u>200&&u<255?0.006:0.012;dr=u>=255?0.012:0;if(u>200&&u<255)dr=-0.2*(p/anchor-1)}
+        if(rg==="box_break"){if(u<190)dr=0.002;else{if(u===190)anchor=p;sd=0.009;dr=-0.25*(p/anchor-1)}}
+        if(rg==="range"){dr=-0.05*(p/anchor-1)}
+        if(rg==="spring"){if(u<200)dr=-0.0025;else if(u<251){if(u===200)anchor=p;sd=0.008;dr=-0.25*(p/anchor-1)}else if(u>251)dr=0.007}
+      }
+      let r=dr+sd*gauss();
+      if(rg==="spring"&&u===251)r=-0.055;
+      if(t===N-1){if(rg==="box_break"||rg==="bull_vol")r=0.062;if(rg==="bear_fut")r=-0.048;if(rg==="spring")r=0.045}
+      const prev=p;p=Math.max(3,p*(1+r));rets.push(r);
+      const o=rt(prev*(1+gauss()*0.004)),c=rt(p);
+      const hi=rt(Math.max(o,c)*(1+Math.abs(gauss())*0.007)),lo=rt(Math.min(o,c)*(1-Math.abs(gauss())*0.007));
+      let v=base*Math.exp(0.3*gauss())*(1+9*Math.abs(r));
+      if(t===N-1&&(rg==="box_break"||rg==="bull_vol"||rg==="bear_fut"))v*=2.8;
+      if(rg==="spring"&&u===251)v*=3.2;
+      if(rg==="box_break"&&u>200&&t<N-1)v*=0.55;
+      k.push([dates[t],o,Math.max(hi,o,c),Math.min(lo,o,c),c,Math.round(v)]);
+    }
+    const trend=Math.sign(k[N-1][4]-k[N-21][4])||1;const vb=base;
+    const fseq=[],tseq=[],dseq=[],mg=[],sh=[];let m=vb*3*(0.6+rnd());
+    for(let j=0;j<20;j++){
+      let f=trend*vb*0.06*(0.3+rnd());if(rnd()<0.25&&j<16)f=-f;fseq.push(Math.round(f));
+      let it=0;if(["bull_vol","box_break","bull"].includes(rg)&&j>=14)it=vb*0.04*(0.5+rnd());else if(rg==="bear_fut"&&j>=15)it=-vb*0.03*(0.5+rnd());else it=(rnd()-.5)*vb*0.01;tseq.push(Math.round(it));
+      dseq.push(Math.round((rnd()-.5)*vb*0.02));
+      m*=1+(trend>0?-0.006:0.008)+(rnd()-.5)*0.004;mg.push(Math.round(m));sh.push(Math.round(m*(0.05+rnd()*0.3)));
+    }
+    if(rg.startsWith("bull"))for(let j=16;j<20;j++)fseq[j]=Math.abs(fseq[j])||50;
+    if(rg.startsWith("bear"))for(let j=16;j<20;j++)fseq[j]=-Math.abs(fseq[j])||-50;
+    const good=rg.startsWith("bull")||rg==="box_break"||rg==="pullback";const bad=rg.startsWith("bear")||rg==="weak";
+    const rev=[];let lvl=5+rnd()*80;
+    for(let j=0;j<13;j++){const y=2025+Math.floor((8+j)/12),mo=(8+j)%12+1;
+      let yoy=good?18+j*1.2+gauss()*6:bad?(j>10?-14+gauss()*5:6+gauss()*5):4+gauss()*10;
+      lvl*=1+gauss()*0.05;rev.push([`${y}-${String(mo).padStart(2,"0")}`,Math.round(lvl*100)/100,Math.round(yoy*10)/10,Math.round(gauss()*80)/10])}
+    const e0=good?1.2+rnd()*3:bad?rnd()*0.8-0.2:0.3+rnd()*1.5;
+    const eps=[0,1,2,3].map(q=>Math.round((e0*(1+(good?q*0.12:bad?-q*0.15:0))+gauss()*0.15)*100)/100);
+    const g0=15+rnd()*30;const gm=[0,1,2,3].map(q=>Math.round((g0+(good?q*1.1:bad?-q*0.8:gauss()))*10)/10);
+    const e4=eps.reduce((a,b)=>a+b,0);
+    stocks.push({id:"D"+String(100+idx),n:ind.slice(0,2)+ch,m:rnd()<0.6?"上市":"上櫃",ind,fut:rg==="bear_fut"||rg==="bear"?rnd()<0.85:rnd()<0.4,
+      k,f:fseq,t:tseq,dl:dseq,mg,sh,rev,eps,gm,pe:e4>0?Math.round(k[N-1][4]/e4*10)/10:null,pb:Math.round((0.8+rnd()*5)*100)/100,dy:Math.round(rnd()*7*100)/100,
+      _cap:base*k[N-1][4]});
+  }
+  // 示範用的成分股與權證：依規模排序指派
+  const bySize=[...stocks].sort((a,b)=>b._cap-a._cap);
+  bySize.forEach((s,i)=>{s.ix=[];if(i<8)s.ix.push("tw50");else if(i<22)s.ix.push("mid100");if(i<18)s.ix.push("ftse");
+    s.wt=s.fut||i<30||rnd()<0.4;delete s._cap});
+  const last=String(dates.at(-1));
+  return{asof:`${last.slice(0,4)}-${last.slice(4,6)}-${last.slice(6)}`,source:"demo",lists:{tw50:true,mid100:true,ftse:true,warrant:true},stocks};
+}
+
+/* ═════════════ 狀態 ═════════════ */
+let DATA=null,STOCKS=[],SEL=store.get("sel",null),MODE=store.get("mode","all"),ATL=store.get("atl",3),
+    SORT={k:"score",dir:-1},CUR=null,RESULTS=[],rsCache={};
+const PARAMS=store.get("params",{});
+for(const c of C)c.P=Object.assign({},c.p,PARAMS[c.id]||{});
+if(!SEL)SEL=Object.keys(PRESETS[0].sel);
+
+function load(data){
+  DATA=data;STOCKS=data.stocks.filter(s=>s.k&&s.k.length>=30).map(prep);rsCache={};
+  const demo=data.source==="demo";
+  const b=document.getElementById("srcBadge");b.className="badge "+(demo?"demo":"real");b.textContent=demo?"示範資料":(data.source||"真實資料");
+  const ae=document.getElementById("asof");ae.textContent="資料日 "+data.asof;ae.title=data.generated?"檔案產生於 "+data.generated:"";
+  document.getElementById("demoNotice").hidden=!demo;
+  markAvailability();CUR=null;run();
+}
+function markAvailability(){
+  for(const c of C){const el=document.getElementById("row_"+c.id);if(!el)continue;
+    const avail=c.list?!!(DATA&&DATA.lists&&DATA.lists[c.list]):(!c.need||STOCKS.some(s=>has(s,c.need)));el.classList.toggle("na",!avail)}
+}
+
+/* ═════════════ 篩選 ═════════════ */
+function smaN(S,n){return S._sma[n]||(S._sma[n]=S.ma[n]||sma(S.c,n))}
+function rsCompute(n){const arr=STOCKS.filter(s=>s.i>=0).map(s=>[s.id,ret(s,n)]).filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
+  const o={};arr.forEach(([id],i)=>o[id]=arr.length>1?i/(arr.length-1)*100:50);return o}
+function rsRank(n){return rsCache[n]||(rsCache[n]=rsCompute(n))}
+const X={rs:rsRank};
+function test(c,S){if(c.need&&!has(S,c.need))return false;try{return !!c.f(S,c.P,X)}catch(e){return false}}
+function run(){
+  const act=SEL.map(id=>CM[id]).filter(Boolean);
+  const need=MODE==="all"?act.length:MODE==="any"?1:Math.min(ATL,act.length);
+  RESULTS=[];
+  for(const S of STOCKS){const hit=act.filter(c=>test(c,S));S.hit=hit;S.score=hit.length;
+    if(!act.length||S.score>=need)RESULTS.push(S)}
+  sortResults();renderSummary(act);renderTable(act.length);
+  if(!CUR||!RESULTS.includes(CUR))CUR=RESULTS[0]||STOCKS[0]||null;
+  renderChart();renderHits();
+  store.set("sel",SEL);store.set("mode",MODE);store.set("atl",ATL);
+  const pp={};for(const c of C)if(JSON.stringify(c.P)!==JSON.stringify(c.p))pp[c.id]=c.P;store.set("params",pp);
+}
+
+/* ═════════════ UI：條件面板 ═════════════ */
+function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
+function condHTML(c){
+  const txt=esc(c.t).replace(/\{(\w)\}/g,(_,k)=>`<input class="pin" type="number" step="any" id="p_${c.id}_${k}" data-c="${c.id}" data-k="${k}" value="${c.P[k]}" aria-label="參數">`);
+  return `<label class="cond" id="row_${c.id}"><input type="checkbox" id="c_${c.id}" data-c="${c.id}" ${SEL.includes(c.id)?"checked":""}><span class="ct">${txt}<span class="desc">${esc(c.d)}</span></span></label>`;
+}
+function buildPanel(){
+  document.getElementById("presets").innerHTML=PRESETS.map((p,i)=>`<button class="preset${p.bear?" bear":""}" data-i="${i}">${p.name}</button>`).join("");
+  document.getElementById("groups").innerHTML=GROUPS.map(g=>{
+    const cs=C.filter(c=>c.g===g.id);
+    return `<details class="grp${g.bear?" bear":""}" id="g_${g.id}" ${["mom","bear"].includes(g.id)||cs.some(c=>SEL.includes(c.id))?"open":""}>
+      <summary><span class="gname">${g.name}</span><span class="gsub">${g.sub}</span><span class="gcount" id="gc_${g.id}" hidden></span></summary>
+      <div class="conds">${cs.map(condHTML).join("")}</div></details>`}).join("");
+  syncCounts();
+}
+function syncCounts(){
+  for(const g of GROUPS){const n=C.filter(c=>c.g===g.id&&SEL.includes(c.id)).length;const el=document.getElementById("gc_"+g.id);el.hidden=!n;el.textContent=n}
+  document.getElementById("selCount").textContent=SEL.length?`已選 ${SEL.length} 項`:"未選條件";
+  document.querySelectorAll("#modeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===MODE));
+  document.getElementById("atlRow").hidden=MODE!=="atl";document.getElementById("atlN").value=ATL;
+}
+let tmr=0;const later=()=>{clearTimeout(tmr);tmr=setTimeout(run,120)};
+document.getElementById("groups").addEventListener("change",e=>{
+  const t=e.target;
+  if(t.type==="checkbox"){const id=t.dataset.c;SEL=t.checked?[...SEL,id]:SEL.filter(x=>x!==id);syncCounts();later()}
+});
+document.getElementById("groups").addEventListener("input",e=>{
+  const t=e.target;if(!t.classList.contains("pin"))return;const v=parseFloat(t.value);if(isNaN(v))return;
+  CM[t.dataset.c].P[t.dataset.k]=v;rsCache={};if(SEL.includes(t.dataset.c))later();
+});
+document.getElementById("presets").addEventListener("click",e=>{
+  const b=e.target.closest(".preset");if(!b)return;const p=PRESETS[+b.dataset.i];
+  SEL=Object.keys(p.sel);for(const [id,pp] of Object.entries(p.sel))CM[id].P=Object.assign({},CM[id].p,pp);
+  MODE=p.mode||"all";buildPanel();run();
+});
+document.getElementById("clearAll").addEventListener("click",()=>{SEL=[];buildPanel();run()});
+document.getElementById("modeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;syncCounts();run()});
+document.getElementById("atlN").addEventListener("input",e=>{const v=parseInt(e.target.value);if(v>0){ATL=v;later()}});
+
+/* ═════════════ UI：結果 ═════════════ */
+const fmtP=x=>x==null?"—":x>=1000?x.toFixed(0):x>=100?x.toFixed(1):x.toFixed(2);
+const fmtN=x=>x==null?"—":Math.round(x).toLocaleString("zh-TW");
+const sgn=x=>x>0?"up":x<0?"dn":"";
+const pct=x=>x==null?"—":(x>0?"+":"")+x.toFixed(2)+"%";
+const COLS=[
+ {k:"id",t:"代號",l:1,v:S=>S.id},{k:"n",t:"名稱",l:1,v:S=>S.n},{k:"ind",t:"產業",l:1,v:S=>S.ind},
+ {k:"close",t:"收盤",v:S=>S.close},{k:"chg",t:"漲跌%",v:S=>S.chg},{k:"vol",t:"成交量",v:S=>S.v[S.i]},
+ {k:"vr",t:"量比",v:S=>S.vr},{k:"r20",t:"20日%",v:S=>ret(S,20)},{k:"val20",t:"均值(億)",v:S=>S.val20},
+ {k:"score",t:"符合",v:S=>S.score},{k:"fut",t:"股期",l:1,v:S=>S.fut?1:0},
+];
+function sortResults(){const col=COLS.find(c=>c.k===SORT.k)||COLS[9];
+  RESULTS.sort((a,b)=>{let x=col.v(a),y=col.v(b);if(x==null)x=-Infinity;if(y==null)y=-Infinity;
+    if(typeof x==="string")return x.localeCompare(y,"zh-Hant")*SORT.dir;return (x-y)*SORT.dir||(b.chg-a.chg)})}
+function renderSummary(act){
+  document.getElementById("nHit").textContent=RESULTS.length;
+  document.getElementById("nOf").textContent=act.length?`檔符合 · 共 ${STOCKS.length} 檔`:`檔（未選條件，顯示全部）`;
+  document.getElementById("activeChips").innerHTML=act.map(c=>`<span class="achip${c.g==="bear"?" bear":""}">${esc(c.t.replace(/\{(\w)\}/g,(_,k)=>c.P[k]))}</span>`).join("");
+}
+function renderTable(nAct){
+  document.getElementById("thead").innerHTML=COLS.map(c=>`<th class="${c.l?"l":""}${SORT.k===c.k?" on":""}" data-k="${c.k}">${c.t}${SORT.k===c.k?`<span class="arr">${SORT.dir<0?"▼":"▲"}</span>`:""}</th>`).join("");
+  const rows=RESULTS.slice(0,400).map(S=>`<tr data-id="${esc(S.id)}" class="${S===CUR?"sel":""}">
+    <td class="l">${esc(S.id)}</td><td class="l nm">${esc(S.n)}</td><td class="l ind" title="${esc(S.ind)}">${esc(S.ind)}</td>
+    <td class="${sgn(S.chg)}">${fmtP(S.close)}</td><td class="${sgn(S.chg)}">${pct(S.chg)}</td>
+    <td>${fmtN(S.v[S.i])}</td><td>${S.vr==null?"—":S.vr.toFixed(2)}</td><td class="${sgn(ret(S,20))}">${pct(ret(S,20))}</td><td>${S.val20.toFixed(2)}</td>
+    <td><span class="score"><span class="bar" style="width:${nAct?S.score/nAct*36:0}px"></span>${nAct?S.score+"/"+nAct:"—"}</span></td>
+    <td class="l">${S.fut?'<span class="ftag">股期</span>':""}</td></tr>`).join("");
+  document.getElementById("tbody").innerHTML=rows||`<tr><td colspan="${COLS.length}" class="empty">沒有股票符合目前的條件。可以放寬參數，或把組合方式改成「至少 N 項」。</td></tr>`;
+}
+document.getElementById("thead").addEventListener("click",e=>{const th=e.target.closest("th");if(!th)return;const k=th.dataset.k;
+  SORT=SORT.k===k?{k,dir:-SORT.dir}:{k,dir:["id","n","ind"].includes(k)?1:-1};sortResults();renderTable(SEL.length)});
+document.getElementById("tbody").addEventListener("click",e=>{const tr=e.target.closest("tr[data-id]");if(!tr)return;
+  CUR=STOCKS.find(s=>s.id===tr.dataset.id);document.querySelectorAll("#tbody tr.sel").forEach(r=>r.classList.remove("sel"));tr.classList.add("sel");renderChart();renderHits()});
+
+/* ═════════════ K 線圖 ═════════════ */
+let chart=null,cs=null,vs=null,m5=null,m20=null,m60=null;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function chartColors(){
+  if(!chart)return;
+  chart.applyOptions({layout:{background:{type:"solid",color:css("--panel")},textColor:css("--ink2"),fontFamily:"JetBrains Mono, monospace"},
+    grid:{vertLines:{color:css("--rule2")},horzLines:{color:css("--rule2")}},rightPriceScale:{borderColor:css("--rule")},timeScale:{borderColor:css("--rule")},
+    crosshair:{vertLine:{color:css("--muted"),labelBackgroundColor:css("--ink")},horzLine:{color:css("--muted"),labelBackgroundColor:css("--ink")}}});
+  const up=css("--up"),dn=css("--down");
+  cs.applyOptions({upColor:up,downColor:dn,borderUpColor:up,borderDownColor:dn,wickUpColor:up,wickDownColor:dn});
+  m5.applyOptions({color:css("--ma5")});m20.applyOptions({color:css("--ma20")});m60.applyOptions({color:css("--ma60")});
+  if(CUR)setVolume(CUR);
+}
+function initChart(){
+  const el=document.getElementById("chart");
+  if(!window.LightweightCharts){el.innerHTML='<div class="empty">圖表元件載入失敗，請確認網路連線後重新整理。</div>';return}
+  chart=LightweightCharts.createChart(el,{autoSize:true,localization:{locale:"zh-TW"},timeScale:{rightOffset:4,barSpacing:7}});
+  cs=chart.addCandlestickSeries({priceLineVisible:false});
+  cs.priceScale().applyOptions({scaleMargins:{top:0.06,bottom:0.26}});
+  vs=chart.addHistogramSeries({priceFormat:{type:"volume"},priceScaleId:"vol",lastValueVisible:false,priceLineVisible:false});
+  chart.priceScale("vol").applyOptions({scaleMargins:{top:0.8,bottom:0}});
+  const line={lineWidth:1,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false};
+  m5=chart.addLineSeries(line);m20=chart.addLineSeries(line);m60=chart.addLineSeries(line);
+  chartColors();
+}
+function setVolume(S){
+  const up=css("--up"),dn=css("--down");
+  vs.setData(S.d.map((t,i)=>({time:t,value:S.v[i],color:(S.c[i]>=(i?S.c[i-1]:S.o[i])?up:dn)+"88"})));
+}
+function renderChart(){
+  const S=CUR;
+  if(!S){document.getElementById("chName").textContent="—";return}
+  document.getElementById("chName").innerHTML=`<span class="num">${esc(S.id)}</span>${esc(S.n)}`;
+  const px=document.getElementById("chPx");px.textContent=fmtP(S.close);px.className="ch-px "+sgn(S.chg);
+  const ch=document.getElementById("chChg");ch.textContent=`${S.close-S.prev>0?"▲":S.close-S.prev<0?"▼":""} ${fmtP(Math.abs(S.close-S.prev))}（${pct(S.chg)}）`;ch.className="ch-chg "+sgn(S.chg);
+  document.getElementById("chMeta").innerHTML=`${esc(S.m)} · ${esc(S.ind)} ${S.fut?'· <span class="futtag">有股期</span>':""}`;
+  for(const n of [5,20,60])document.getElementById("lg"+n).textContent=fmtP(S.ma[n][S.i]);
+  if(chart){
+    cs.setData(S.d.map((t,i)=>({time:t,open:S.o[i],high:S.h[i],low:S.l[i],close:S.c[i]})));
+    setVolume(S);
+    const ln=n=>S.d.map((t,i)=>S.ma[n][i]==null?{time:t}:{time:t,value:S.ma[n][i]});
+    m5.setData(ln(5));m20.setData(ln(20));m60.setData(ln(60));
+    const from=Math.max(0,S.i-120);chart.timeScale().setVisibleLogicalRange({from,to:S.i+4});
+  }
+  const sum5=a=>a&&a.length?sum(a,5):null;
+  const r=S.rev&&S.rev.at(-1);
+  const facts=[
+    ["外資 5 日",sum5(S.f),"張"],["投信 5 日",sum5(S.t),"張"],["自營 5 日",sum5(S.dl),"張"],
+    ["融資 5 日增減",S.mg&&S.mg.length>=6?S.mg.at(-1)-S.mg.at(-6):null,"張"],
+    ["營收年增",r?r[2]:null,"%",r?r[0]:""],["近四季 EPS",S.eps&&S.eps.length?sum(S.eps,4):null,"元"],
+    ["本益比",S.pe,"倍"],["殖利率",S.dy,"%"],["RSI(14)",S.rsi[S.i],""],["K / D",null,"",`${S.K[S.i].toFixed(0)} / ${S.D[S.i].toFixed(0)}`]];
+  document.getElementById("facts").innerHTML=facts.map(([k,v,u,extra])=>{
+    let txt;if(k==="K / D")txt=extra;else if(v==null)txt="—";else{const dec=u==="張"?0:u==="%"||u==="元"||u==="倍"?2:1;
+      txt=(u==="張"&&v>0?"+":"")+(u==="張"?fmtN(v):(+v).toFixed(dec))+(u&&u!=="張"?u:"")}
+    const cls=u==="張"&&v!=null?sgn(v):(k==="營收年增"&&v!=null?sgn(v):"");
+    return `<div class="fact"><span class="k">${k}${extra&&k==="營收年增"?` <span class="num">${esc(extra)}</span>`:""}</span><span class="v ${cls}">${txt}</span></div>`}).join("");
+}
+function renderHits(){
+  const S=CUR,el=document.getElementById("hits");if(!S){el.innerHTML="";return}
+  const act=SEL.map(id=>CM[id]).filter(Boolean);if(!act.length){el.innerHTML="";return}
+  el.innerHTML="條件："+act.map(c=>{const ok=S.hit&&S.hit.includes(c);const t=esc(c.t.replace(/\{(\w)\}/g,(_,k)=>c.P[k]));
+    return ok?`<span class="y${c.g==="bear"?" bear":""}">✓ ${t}</span>`:`<span class="n">${t}</span>`}).join("");
+}
+
+/* ═════════════ 選股邏輯頁 ═════════════ */
+const LOGIC=[
+ {g:"fund",why:"回答「這家公司值不值得買」。台股月營收每月 10 日前公布，是全球少見的高頻基本面資料，適合做為第一層濾網。",
+  pts:["<b>營收年增 + 連續成長</b>：比單月爆發可靠，連 3 個月年增代表需求不是一次性。","<b>營收創 12 個月新高</b>：常領先股價創高，適合搭配「創 60 日新高」確認市場認同。","<b>EPS 與毛利率</b>：確認營收成長有轉成獲利；毛利率連升代表產品組合或定價能力改善。","<b>本益比、殖利率</b>：評價保護，單獨使用容易選到「便宜但沒成長」的價值陷阱。"]},
+ {g:"tech",why:"回答「現在是不是好時機」。技術指標本身勝率普通，價值在於找出位置與轉折點，最好搭配趨勢或籌碼一起用。",
+  pts:["<b>站上均線、均線轉上揚</b>：確認位置在成本線之上。","<b>KD 低檔黃金交叉、MACD 翻正</b>：短中期動能轉強的轉折訊號。","<b>RSI 50～70</b>：多方掌控但還沒過熱，是趨勢股回檔後的甜蜜區。","<b>布林通道突破</b>：波動由收斂轉擴張，常出現在行情發動初期。"]},
+ {g:"chip",why:"回答「誰在買」。台股法人與融資券資料每日公開，是台股特有的優勢。法人連續買超通常代表有研究支撐的計畫性布局。",
+  pts:["<b>投信連買</b>：投信偏好中小型股且操作有延續性，連買 3 天以上常是一段行情的開始。","<b>投信買超佔成交量比</b>：比張數更公平，小型股 5% 以上就很有份量。","<b>融資減、股價漲</b>：散戶籌碼退場、法人或大戶接手，籌碼變乾淨。","<b>券資比高</b>：搭配股價走強時有軋空動能，特別留意股東會與除權息前的強制回補時點。"]},
+ {g:"mom",why:"動能效應是學術與實務都驗證過的因子：過去 3～12 個月漲得多的股票，接下來一段時間傾向繼續強勢。趨勢動能條件是整套選股的骨幹。",
+  pts:["<b>均線多頭排列</b>：短中長期持有人都賺錢，賣壓最輕。","<b>創 N 日新高、貼近 52 週高點</b>：上方沒有套牢區。","<b>相對強度 RS 前 10%</b>：與全市場比較，挑真正的領漲股。","<b>站上年線且年線上揚</b>：長期多頭結構，過濾掉跌深反彈股。"]},
+ {g:"pat",why:"型態是在找「起漲點」：價格經過整理、籌碼換手完成後的突破，風險報酬比最好，停損點也最明確（跌回整理區就出場）。",
+  pts:["<b>整理後突破</b>：振幅收斂的箱型整理被帶量突破，可搭配「量縮整理」看整理期間量有沒有縮。","<b>均線糾結發散</b>：多空成本一致後開口向上，常是大行情的起點。","<b>回測月線不破</b>：多頭中的拉回買點，停損設月線下方即可。","<b>底部墊高</b>：每次回檔的低點都更高，買盤逐漸積極。"]},
+ {g:"vol",why:"量是價的先行指標。突破沒有量容易是假突破；整理期間量縮代表浮額沉澱。流動性門檻則是實務上一定要加的條件。",
+  pts:["<b>量增倍數</b>：今天量 ≥ 前 5 日均量 2 倍，代表有新資金進場。","<b>量縮整理</b>：5 日均量低於 20 日均量六成，賣壓竭盡。","<b>均成交值 ≥ 1 億</b>：確保進出不會造成太大滑價，建議每個策略都加。"]},
+ {g:"fut",why:"這組條件決定「選股範圍」和「用什麼工具操作」。先用指數成分縮小範圍，可以確保流動性與研究覆蓋度；再看有沒有股票期貨或權證，決定能不能放空、能不能用槓桿。",
+  pts:["<b>0050 成分股</b>：權值股，適合大資金、波段操作，走勢受外資與大盤影響大。","<b>中型100 成分股</b>：成長股的主要來源，搭配投信買超與營收成長效果最好。","<b>新加坡富時成分股</b>：外資用富台期避險時，成分股會被一起買賣，大盤急殺急拉時特別明顯。","<b>有發行權證</b>：券商有避險部位，流動性通常不錯；資金小也能用權證參與。","<b>股票期貨</b>：可用股期取代現股，資金效率高（保證金約 13.5% 起）；空方選股建議一定勾選「有股票期貨」，選出來的股票才放得空。"]},
+ {g:"bear",bear:true,why:"空方動能是多方條件的鏡像：弱者恆弱。適合用來找放空標的、避開持股地雷，或做多空對沖（多強勢股、空弱勢股）。",
+  pts:["<b>均線空頭排列、創新低</b>：上方每一價位都有套牢賣壓，反彈有限。","<b>跌破季線、整理後跌破</b>：支撐變壓力，是空方進場的明確位置，停損設在跌破的均線或箱型下緣上方。","<b>外資／投信連賣</b>：法人有計畫地調節。","<b>融資增、股價跌</b>：散戶越跌越買，籌碼變亂，下跌容易延續。","<b>爆量長黑</b>：大量不計價賣出，常是出貨訊號。","<b>營收年增轉負</b>：基本面轉弱的早期警訊。"]},
+];
+function buildLogic(){
+  const v=document.getElementById("view-logic");
+  v.innerHTML=`<div><h1>選股邏輯</h1><p class="lede">把條件分成八個面向，每個面向回答一個問題。實戰上不要只用單一面向，最穩的做法是「基本面或籌碼面找標的，趨勢動能確認方向，型態與成交量找進場點」。</p></div>
+  <div class="flow"><span class="lbl">建議的組合流程</span><ol>
+    <li><b>先設流動性門檻</b>：20 日均成交值 ≥ 0.5～1 億元。</li>
+    <li><b>選一個主軸</b>：成長股看基本面（營收），短中線看籌碼面（投信、外資），純技術派看趨勢動能。</li>
+    <li><b>用趨勢動能確認方向</b>：多方要求均線多頭排列或站上年線；空方要求空頭排列或跌破季線。</li>
+    <li><b>用型態與成交量找進場點</b>：整理後帶量突破、拉回月線不破。</li>
+    <li><b>條件太嚴選不出來時</b>，把組合方式改成「至少 N 項」，再依符合數排序。</li></ol></div>
+  ${LOGIC.map(x=>{const g=GROUPS.find(g=>g.id===x.g);return `<section class="lg"><h2 class="${x.bear?"bear":""}">${g.name}</h2><div><p class="why">${x.why}</p><ul>${x.pts.map(p=>`<li>${p}</li>`).join("")}</ul></div></section>`}).join("")}
+  <section class="lg"><h2>使用須知</h2><div>
+    <p class="warn">盤後資料公布時間不同：股價收盤後即有，三大法人約下午 3 點後，融資融券在晚上。建議晚上 10 點後執行資料腳本，資料才會齊全。月營收在每月 10 日前陸續公布，月初選股時部分公司還是上個月的數字。</p>
+    <p class="warn">選股條件只是篩選工具，不保證獲利。正式使用前建議先回測：拿過去的資料跑同一組條件，看隔天進場、持有 5／10／20 天的勝率與報酬，再決定參數。這也是下一步可以加進來的功能。</p>
+  </div></section>`;
+}
+
+/* ═════════════ 分頁、主題、載入 ═════════════ */
+function showTab(which){
+  for(const t of ["screen","bt","logic"]){document.getElementById("view-"+t).hidden=t!==which;document.getElementById("tab-"+t).setAttribute("aria-selected",t===which)}
+  if(which==="bt")btIntro();
+}
+document.getElementById("tab-screen").onclick=()=>showTab("screen");
+document.getElementById("tab-bt").onclick=()=>showTab("bt");
+document.getElementById("tab-logic").onclick=()=>showTab("logic");
+
+/* ═════════════ 回測 ═════════════ */
+let BTDIR="auto",BTRUN=0;
+function setAt(S,t){S.i=t;S.close=S.c[t];S.prev=t>0?S.c[t-1]:S.c[t];S.chg=(S.close/S.prev-1)*100;
+  S.vr=t>5?S.v[t]/((S.v[t-1]+S.v[t-2]+S.v[t-3]+S.v[t-4]+S.v[t-5])/5||1):null;
+  let s=0,n=0;for(let j=Math.max(0,t-19);j<=t;j++){s+=S.c[j]*S.v[j];n++}S.val20=s*1000/n/1e8}
+function btIntro(){
+  const act=SEL.map(id=>CM[id]).filter(Boolean),use=act.filter(c=>!c.need),skip=act.filter(c=>c.need);
+  const lab=c=>esc(c.t.replace(/\{(\w)\}/g,(_,k)=>c.P[k]));
+  document.getElementById("btConds").innerHTML=act.length
+    ?use.map(c=>`<span class="achip${c.g==="bear"?" bear":""}">${lab(c)}</span>`).join("")+(skip.length?`<p class="foot" style="width:100%;margin:4px 0 0">以下條件需要每日的歷史籌碼或財報資料，回測時先略過：${skip.map(lab).join("、")}</p>`:"")
+      +(use.some(c=>c.g==="fut")?`<p class="foot" style="width:100%;margin:4px 0 0">成分股、權證、股期條件使用的是目前的名單，回測過去時會有些微偏差。</p>`:"")
+    :`<span class="foot">還沒選條件。請先到「選股」分頁勾選條件或點一個策略組合。</span>`;
+  document.getElementById("btMode").textContent=MODE==="all"?"全部符合":MODE==="any"?"任一符合":`至少 ${ATL} 項`;
+}
+document.getElementById("btDir").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;BTDIR=b.dataset.d;
+  document.querySelectorAll("#btDir button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+document.getElementById("btGo").addEventListener("click",runBT);
+const tick0=()=>new Promise(r=>setTimeout(r,0));
+async function runBT(){
+  const run=++BTRUN;const out=document.getElementById("btOut"),prog=document.getElementById("btProg");
+  const use=SEL.map(id=>CM[id]).filter(c=>c&&!c.need);
+  if(!use.length){out.innerHTML=`<div class="empty">沒有可以回測的條件。目前可回測的是技術面、趨勢動能、型態、成交量、股票期貨與空方的價量條件。</div>`;return}
+  const need=MODE==="all"?use.length:MODE==="any"?1:Math.min(ATL,use.length);
+  const dir=BTDIR==="long"?1:BTDIR==="short"?-1:(use.filter(c=>c.g==="bear").length>use.length/2?-1:1);
+  const cost=Math.max(0,parseFloat(document.getElementById("btCost").value)||0);
+  const days=parseInt(document.getElementById("btDays").value);
+  const HS=[5,10,20];
+  let master=[];for(const S of STOCKS)if(S.d.length>master.length)master=S.d;
+  for(const S of STOCKS){S.di=new Map(S.d.map((d,i)=>[d,i]));S._last=-9}
+  const first=Math.max(60,master.length-1-days),lastD=master.length-2;
+  const trades=[],base={};for(const h of HS)base[h]={s:0,n:0};
+  for(let k=first;k<=lastD;k++){
+    if(run!==BTRUN)return;
+    const D=master[k];
+    for(const S of STOCKS){const t=S.di.get(D);if(t==null||t<60)S.i=-1;else setAt(S,t)}
+    const rc={};const XB={rs:n=>rc[n]||(rc[n]=rsCompute(n))};
+    for(const S of STOCKS){
+      const t=S.i;if(t<0||t+1>=S.c.length)continue;const entry=S.o[t+1];if(!(entry>0))continue;
+      for(const h of HS)if(t+h<S.c.length){base[h].s+=((S.c[t+h]/entry-1)*100)*dir-cost;base[h].n++}
+      let hit=0;for(const c of use){let ok=false;try{ok=!!c.f(S,c.P,XB)}catch(e){}if(ok)hit++}
+      if(hit>=need){const fresh=S._last!==t-1;S._last=t;if(!fresh)continue;
+        const r={};for(const h of HS)r[h]=t+h<S.c.length?(S.c[t+h]/entry-1)*100*dir-cost:null;
+        trades.push({D,S,entry,r})}
+    }
+    if(k%8===0){prog.hidden=false;prog.firstElementChild.style.width=((k-first)/(lastD-first+1)*100)+"%";await tick0()}
+  }
+  for(const S of STOCKS)setAt(S,S.c.length-1);
+  prog.hidden=true;
+  renderBT(trades,base,HS,dir,cost,master[first],master[lastD]);
+}
+function renderBT(trades,base,HS,dir,cost,d0,d1){
+  const out=document.getElementById("btOut");
+  if(!trades.length){out.innerHTML=`<div class="empty">${d0} ~ ${d1} 期間沒有任何股票符合條件。可以放寬參數或改用「至少 N 項」。</div>`;return}
+  const st=HS.map(h=>{const a=trades.map(t=>t.r[h]).filter(x=>x!=null).sort((x,y)=>x-y);const n=a.length;
+    const avg=n?a.reduce((x,y)=>x+y,0)/n:null,b=base[h].n?base[h].s/base[h].n:null;
+    return{h,n,win:n?a.filter(x=>x>0).length/n*100:null,avg,med:n?a[Math.floor(n/2)]:null,best:n?a[n-1]:null,worst:n?a[0]:null,b,edge:avg!=null&&b!=null?avg-b:null}});
+  const p=(x,d=2)=>x==null?"—":(x>0?"+":"")+x.toFixed(d)+"%";
+  const best=st.reduce((a,b)=>(b.edge??-1e9)>(a.edge??-1e9)?b:a);
+  const days=new Set(trades.map(t=>t.D)).size;
+  const verdict=best.edge==null?"":best.edge>0.5&&best.win>50?`持有 ${best.h} 天的表現最好，平均每筆比同期全市場多 <b class="up">${p(best.edge)}</b>，勝率 ${best.win.toFixed(0)}%。`:best.edge>0?`略優於全市場，但差距不大，建議調整參數或加條件再測。`:`表現沒有贏過同期全市場平均，這組條件目前沒有明顯優勢。`;
+  const recent=trades.slice(-60).reverse();
+  out.innerHTML=`
+  <div class="bt-sum"><div><span class="big">${trades.length}</span> <span class="of">筆訊號 · ${days} 個交易日 · ${d0} ~ ${d1}</span></div>
+    <p class="bt-verdict">${dir<0?"以<b>放空</b>計算。":"以<b>做多</b>計算。"}${verdict}</p></div>
+  <div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">持有天數</th><th>筆數</th><th>勝率</th><th>平均報酬</th><th>中位數</th><th>最好</th><th>最差</th><th>全市場平均</th><th>超額報酬</th></tr></thead><tbody>
+  ${st.map(s=>`<tr style="cursor:default"><td class="l">${s.h} 天</td><td>${s.n}</td><td>${s.win==null?"—":s.win.toFixed(1)+"%"}</td><td class="${sgn(s.avg)}">${p(s.avg)}</td><td class="${sgn(s.med)}">${p(s.med)}</td><td class="up">${p(s.best,1)}</td><td class="dn">${p(s.worst,1)}</td><td class="${sgn(s.b)}">${p(s.b)}</td><td class="${sgn(s.edge)}"><b>${p(s.edge)}</b></td></tr>`).join("")}
+  </tbody></table></div>
+  <p class="foot">進場價為訊號隔天開盤價，出場價為第 N 天收盤價，每筆已扣除 ${cost}% 交易成本。同一檔股票連續多天符合時只算第一天。全市場平均是同期間每一檔股票用相同方式買進的平均報酬，用來判斷條件是否真的有選股能力。</p>
+  <h3 class="bt-h">最近的訊號</h3>
+  <div class="tbl-wrap"><table><thead><tr><th class="l">訊號日</th><th class="l">代號</th><th class="l">名稱</th><th>進場價</th><th>5 天</th><th>10 天</th><th>20 天</th></tr></thead><tbody>
+  ${recent.map(t=>`<tr data-id="${esc(t.S.id)}"><td class="l">${t.D}</td><td class="l">${esc(t.S.id)}</td><td class="l nm">${esc(t.S.n)}</td><td>${fmtP(t.entry)}</td>${HS.map(h=>`<td class="${sgn(t.r[h])}">${t.r[h]==null?"—":p(t.r[h],1)}</td>`).join("")}</tr>`).join("")}
+  </tbody></table></div>`;
+}
+document.getElementById("btOut").addEventListener("click",e=>{const tr=e.target.closest("tr[data-id]");if(!tr)return;
+  CUR=STOCKS.find(s=>s.id===tr.dataset.id);showTab("screen");renderChart();renderHits();renderTable(SEL.length)});
+
+const THEMES=["system","light","dark"];let THEME=store.get("theme","system");
+const ICONS={system:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'};
+const LABEL={system:"跟隨系統",light:"淺色",dark:"深色"};
+function applyTheme(){
+  if(THEME==="system")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",THEME);
+  const b=document.getElementById("themeBtn");b.innerHTML=ICONS[THEME];b.title="主題："+LABEL[THEME]+"（點擊切換）";
+  chartColors();
+}
+document.getElementById("themeBtn").onclick=()=>{THEME=THEMES[(THEMES.indexOf(THEME)+1)%3];store.set("theme",THEME);applyTheme()};
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",chartColors)}catch(e){}
+
+document.getElementById("file").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.stocks)throw new Error("格式不符");load(d)}
+    catch(err){document.getElementById("demoNotice").hidden=false;document.getElementById("demoNotice").innerHTML="<b>無法讀取這個檔案：</b>請選擇 taojin_data.py 產生的 data.json。"}};
+  rd.readAsText(f);
+});
+
+buildPanel();buildLogic();initChart();applyTheme();
+load(window.TAOJIN_DATA&&window.TAOJIN_DATA.stocks?window.TAOJIN_DATA:demoData());
+</script>
