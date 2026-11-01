@@ -1,0 +1,88 @@
+name: 盤後資料更新
+
+on:
+  schedule:
+    - cron: "30 14 * * 1-5"   # 台灣時間 週一～週五 22:30（GitHub 排程可能延遲數十分鐘）
+  workflow_dispatch:          # 可在 Actions 頁面手動按「Run workflow」
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Asia/Taipei
+      FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 檢查 token
+        run: |
+          if [ -z "$FINMIND_TOKEN" ]; then
+            echo "::error::找不到 FINMIND_TOKEN，請到 Settings → Secrets and variables → Actions 新增。"
+            exit 1
+          fi
+
+      - name: 還原快取
+        uses: actions/cache/restore@v4
+        with:
+          path: taojin_cache
+          key: taojin-cache-${{ github.run_id }}
+          restore-keys: taojin-cache-
+
+      - name: 抓盤後資料
+        run: python -u taojin_data.py --out site --cache taojin_cache --lists lists
+
+      - name: 儲存快取（失敗也存，下次可接續）
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: taojin_cache
+          key: taojin-cache-${{ github.run_id }}
+
+      - name: 組合網站
+        run: cp index.html site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: 發布網站
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: 記錄更新狀態（同時避免排程因 60 天無活動被停用）
+        run: |
+          python - <<'PY'
+          import json
+          d = json.load(open("site/data.json", encoding="utf-8"))
+          s = {"asof": d["asof"], "generated": d.get("generated"), "stocks": len(d["stocks"]),
+               "lists": d.get("lists", {})}
+          json.dump(s, open("status.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          print(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add status.json
+          git commit -m "資料更新 $(date +%F)" || echo "沒有變更"
+          git push || echo "推送失敗（不影響網站）"
