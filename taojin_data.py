@@ -55,7 +55,7 @@ UA = {"User-Agent": "Mozilla/5.0 (taojin-screener)"}
 class FinMind:
     def __init__(self, token: str | None, rate_per_hour: int):
         self.s = requests.Session()
-        self.token = token
+        self.token = (token or "").strip() or None  # 去掉貼上時多出的空白或換行
         self.min_interval = 3600.0 / max(rate_per_hour, 1)
         self.last = 0.0
         self.calls = 0
