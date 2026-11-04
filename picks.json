@@ -1,0 +1,313 @@
+{
+ "asof": "2026-11-04",
+ "generated": "2026-11-05 00:52",
+ "universe": 1979,
+ "strategies": {
+  "強勢多頭": {
+   "rule": "均線多頭排列（5>10>20>60）、收盤創 60 日新高、成交量 ≥ 前 5 日均量 1.5 倍、20 日均成交值 ≥ 1 億",
+   "count": 5,
+   "stocks": [
+    {
+     "id": "1528",
+     "name": "恩德",
+     "industry": "電機機械",
+     "market": "上市",
+     "close": 27.65,
+     "chg_pct": 9.94,
+     "volume": 32766,
+     "vol_ratio": 2.78,
+     "ret20_pct": 14.49,
+     "value20_e8": 2.73,
+     "foreign5": null,
+     "trust5": null,
+     "fut": false,
+     "warrant": false,
+     "index": []
+    },
+    {
+     "id": "9933",
+     "name": "中鼎",
+     "industry": "其他",
+     "market": "上市",
+     "close": 47.95,
+     "chg_pct": 3.56,
+     "volume": 11149,
+     "vol_ratio": 1.81,
+     "ret20_pct": 3.45,
+     "value20_e8": 2.53,
+     "foreign5": null,
+     "trust5": null,
+     "fut": false,
+     "warrant": false,
+     "index": []
+    },
+    {
+     "id": "6221",
+     "name": "晉泰",
+     "industry": "資訊服務業",
+     "market": "上櫃",
+     "close": 43.15,
+     "chg_pct": 9.94,
+     "volume": 17062,
+     "vol_ratio": 1.71,
+     "ret20_pct": 43.36,
+     "value20_e8": 2.14,
+     "foreign5": null,
+     "trust5": null,
+     "fut": false,
+     "warrant": true,
+     "index": []
+    },
+    {
+     "id": "2033",
+     "name": "佳大",
+     "industry": "鋼鐵工業",
+     "market": "上市",
+     "close": 77.1,
+     "chg_pct": 9.99,
+     "volume": 5525,
+     "vol_ratio": 1.69,
+     "ret20_pct": 51.18,
+     "value20_e8": 2.09,
+     "foreign5": null,
+     "trust5": null,
+     "fut": false,
+     "warrant": false,
+     "index": []
+    },
+    {
+     "id": "2412",
+     "name": "中華電",
+     "industry": "電子工業",
+     "market": "上市",
+     "close": 161.5,
+     "chg_pct": 1.57,
+     "volume": 16336,
+     "vol_ratio": 1.59,
+     "ret20_pct": 11.0,
+     "value20_e8": 17.16,
+     "foreign5": 14586,
+     "trust5": 5349,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    }
+   ]
+  },
+  "法人認養": {
+   "rule": "投信連續買超 3 日、三大法人近 5 日合計買超 ≥ 500 張、站上 20 日均線、20 日均成交值 ≥ 0.5 億",
+   "count": 11,
+   "stocks": [
+    {
+     "id": "1802",
+     "name": "台玻",
+     "industry": "玻璃陶瓷",
+     "market": "上市",
+     "close": 66.7,
+     "chg_pct": -1.48,
+     "volume": 278489,
+     "vol_ratio": 2.11,
+     "ret20_pct": 12.48,
+     "value20_e8": 89.98,
+     "foreign5": 20983,
+     "trust5": 18625,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "mid100"
+     ]
+    },
+    {
+     "id": "2880",
+     "name": "華南金",
+     "industry": "金融保險",
+     "market": "上市",
+     "close": 49.05,
+     "chg_pct": 0.0,
+     "volume": 23937,
+     "vol_ratio": 1.74,
+     "ret20_pct": 9.98,
+     "value20_e8": 6.95,
+     "foreign5": -17948,
+     "trust5": 8322,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "2412",
+     "name": "中華電",
+     "industry": "電子工業",
+     "market": "上市",
+     "close": 161.5,
+     "chg_pct": 1.57,
+     "volume": 16336,
+     "vol_ratio": 1.59,
+     "ret20_pct": 11.0,
+     "value20_e8": 17.16,
+     "foreign5": 14586,
+     "trust5": 5349,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "1101",
+     "name": "台泥",
+     "industry": "水泥工業",
+     "market": "上市",
+     "close": 27.25,
+     "chg_pct": -1.62,
+     "volume": 56950,
+     "vol_ratio": 1.39,
+     "ret20_pct": 9.0,
+     "value20_e8": 13.03,
+     "foreign5": 29173,
+     "trust5": -4441,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "mid100"
+     ]
+    },
+    {
+     "id": "3045",
+     "name": "台灣大",
+     "industry": "電子工業",
+     "market": "上市",
+     "close": 135.0,
+     "chg_pct": 1.5,
+     "volume": 11189,
+     "vol_ratio": 1.21,
+     "ret20_pct": 10.2,
+     "value20_e8": 11.32,
+     "foreign5": 9720,
+     "trust5": 5237,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "5880",
+     "name": "合庫金",
+     "industry": "金融保險",
+     "market": "上市",
+     "close": 28.5,
+     "chg_pct": 0.18,
+     "volume": 20104,
+     "vol_ratio": 1.18,
+     "ret20_pct": 10.04,
+     "value20_e8": 5.19,
+     "foreign5": 21189,
+     "trust5": 4689,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "2891",
+     "name": "中信金",
+     "industry": "金融保險",
+     "market": "上市",
+     "close": 73.2,
+     "chg_pct": -1.35,
+     "volume": 41925,
+     "vol_ratio": 1.03,
+     "ret20_pct": 8.61,
+     "value20_e8": 28.13,
+     "foreign5": -8501,
+     "trust5": 34623,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "4904",
+     "name": "遠傳",
+     "industry": "電子工業",
+     "market": "上市",
+     "close": 114.0,
+     "chg_pct": 1.33,
+     "volume": 7434,
+     "vol_ratio": 0.95,
+     "ret20_pct": 8.06,
+     "value20_e8": 7.29,
+     "foreign5": 5276,
+     "trust5": 4144,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "5904",
+     "name": "寶雅*",
+     "industry": "居家生活類",
+     "market": "上櫃",
+     "close": 73.2,
+     "chg_pct": 0.69,
+     "volume": 3507,
+     "vol_ratio": 0.95,
+     "ret20_pct": 6.4,
+     "value20_e8": 2.82,
+     "foreign5": 7493,
+     "trust5": 288,
+     "fut": true,
+     "warrant": true,
+     "index": []
+    },
+    {
+     "id": "2892",
+     "name": "第一金",
+     "industry": "金融保險",
+     "market": "上市",
+     "close": 42.45,
+     "chg_pct": -0.35,
+     "volume": 25124,
+     "vol_ratio": 0.93,
+     "ret20_pct": 11.56,
+     "value20_e8": 9.09,
+     "foreign5": -493,
+     "trust5": 7897,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    },
+    {
+     "id": "2603",
+     "name": "長榮",
+     "industry": "航運業",
+     "market": "上市",
+     "close": 268.0,
+     "chg_pct": 0.56,
+     "volume": 9061,
+     "vol_ratio": 0.8,
+     "ret20_pct": 14.29,
+     "value20_e8": 36.98,
+     "foreign5": 8552,
+     "trust5": 4394,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "tw50"
+     ]
+    }
+   ]
+  }
+ }
+}
