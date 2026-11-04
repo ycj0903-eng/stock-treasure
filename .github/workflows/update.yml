@@ -60,6 +60,9 @@ jobs:
           path: taojin_cache
           key: taojin-cache-${{ github.run_id }}
 
+      - name: 計算策略選股
+        run: python picks.py site/data.json picks.json && cp picks.json site/picks.json
+
       - name: 組合網站
         run: cp index.html site/index.html
 
@@ -83,6 +86,6 @@ jobs:
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
-          git add status.json
+          git add status.json picks.json
           git commit -m "資料更新 $(date +%F)" || echo "沒有變更"
           git push || echo "推送失敗（不影響網站）"
