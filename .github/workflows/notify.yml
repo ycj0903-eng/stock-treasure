@@ -19,8 +19,22 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: 還原 chat id 快取
+        uses: actions/cache/restore@v4
+        with:
+          path: .telegram
+          key: telegram-${{ github.run_id }}
+          restore-keys: telegram-
+
       - name: 傳送選股結果到 Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python notify_telegram.py picks.json 強勢多頭
+
+      - name: 儲存 chat id 快取
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: .telegram
+          key: telegram-${{ github.run_id }}
