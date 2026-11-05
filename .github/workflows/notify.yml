@@ -1,0 +1,26 @@
+name: Telegram 早報
+
+on:
+  schedule:
+    - cron: "45 23 * * 0-4"   # 台灣時間 週一～週五 07:45（GitHub 排程可能延遲數十分鐘）
+  workflow_dispatch:          # 可在 Actions 頁面手動按「Run workflow」測試
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 傳送選股結果到 Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python notify_telegram.py picks.json 強勢多頭
