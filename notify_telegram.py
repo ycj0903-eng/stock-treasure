@@ -98,10 +98,30 @@ def main() -> None:
     print(text)
     token = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
     chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
-    if not token or not chat:
-        raise SystemExit("缺少 TELEGRAM_BOT_TOKEN 或 TELEGRAM_CHAT_ID，請到 GitHub 的 Secrets 設定。")
+    if not token:
+        raise SystemExit("缺少 TELEGRAM_BOT_TOKEN，請到 GitHub 的 Secrets 設定。")
+    cache = ".telegram/chat_id"
+    if not chat and os.path.exists(cache):
+        chat = open(cache).read().strip()
+    if not chat:
+        chat = find_chat_id(token)
+        os.makedirs(".telegram", exist_ok=True)
+        open(cache, "w").write(chat)  # 存進 Actions 快取，之後每天直接沿用
     send(token, chat, text)
     print("已傳送到 Telegram")
+
+
+def find_chat_id(token: str) -> str:
+    """沒設定 TELEGRAM_CHAT_ID 時，從最近傳給機器人的私訊找出你的 chat id。"""
+    with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getUpdates", timeout=30) as r:
+        res = json.load(r)
+    for u in reversed(res.get("result", [])):
+        msg = u.get("message") or u.get("edited_message") or {}
+        c = msg.get("chat", {})
+        if c.get("type") == "private" and c.get("id"):
+            print("已從最近的私訊找到 chat id")
+            return str(c["id"])
+    raise SystemExit("找不到 chat id：請先在 Telegram 打開你的機器人，按「開始」並傳一句話，再重新執行。")
 
 
 if __name__ == "__main__":
