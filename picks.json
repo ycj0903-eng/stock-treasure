@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-20",
- "generated": "2026-11-21 00:55",
+ "asof": "2026-11-23",
+ "generated": "2026-11-24 03:13",
  "universe": 1981,
  "strategies": {
   "強勢多頭": {
@@ -10,21 +10,40 @@
   },
   "法人認養": {
    "rule": "投信連續買超 3 日、三大法人近 5 日合計買超 ≥ 500 張、站上 20 日均線、20 日均成交值 ≥ 0.5 億",
-   "count": 4,
+   "count": 5,
    "stocks": [
+    {
+     "id": "3023",
+     "name": "信邦",
+     "industry": "電子零組件業",
+     "market": "上市",
+     "close": 277.5,
+     "chg_pct": 4.72,
+     "volume": 2002,
+     "vol_ratio": 1.74,
+     "ret20_pct": -6.88,
+     "value20_e8": 4.7,
+     "foreign5": 524,
+     "trust5": 1318,
+     "fut": false,
+     "warrant": false,
+     "index": [
+      "mid100"
+     ]
+    },
     {
      "id": "2412",
      "name": "中華電",
      "industry": "電子工業",
      "market": "上市",
-     "close": 162.5,
-     "chg_pct": -2.11,
-     "volume": 40344,
-     "vol_ratio": 2.32,
-     "ret20_pct": 2.85,
-     "value20_e8": 25.78,
-     "foreign5": 1874,
-     "trust5": 5599,
+     "close": 164.5,
+     "chg_pct": 1.23,
+     "volume": 36632,
+     "vol_ratio": 1.55,
+     "ret20_pct": 4.11,
+     "value20_e8": 28.78,
+     "foreign5": -1202,
+     "trust5": 16073,
      "fut": true,
      "warrant": false,
      "index": [
@@ -32,19 +51,38 @@
      ]
     },
     {
-     "id": "3023",
-     "name": "信邦",
-     "industry": "電子零組件業",
+     "id": "3661",
+     "name": "世芯-KY",
+     "industry": "電子工業",
      "market": "上市",
-     "close": 265.0,
-     "chg_pct": -2.03,
-     "volume": 1492,
-     "vol_ratio": 1.55,
-     "ret20_pct": -11.07,
-     "value20_e8": 4.43,
-     "foreign5": 408,
-     "trust5": 1061,
-     "fut": false,
+     "close": 3560.0,
+     "chg_pct": 9.88,
+     "volume": 4107,
+     "vol_ratio": 0.95,
+     "ret20_pct": 1.86,
+     "value20_e8": 105.15,
+     "foreign5": -418,
+     "trust5": 1141,
+     "fut": true,
+     "warrant": false,
+     "index": [
+      "mid100"
+     ]
+    },
+    {
+     "id": "1476",
+     "name": "儒鴻",
+     "industry": "紡織纖維",
+     "market": "上市",
+     "close": 359.0,
+     "chg_pct": -1.37,
+     "volume": 3506,
+     "vol_ratio": 0.92,
+     "ret20_pct": 10.63,
+     "value20_e8": 10.52,
+     "foreign5": -2891,
+     "trust5": 5085,
+     "fut": true,
      "warrant": false,
      "index": [
       "mid100"
@@ -55,36 +93,17 @@
      "name": "聚陽",
      "industry": "紡織纖維",
      "market": "上市",
-     "close": 220.0,
-     "chg_pct": -1.79,
-     "volume": 4418,
-     "vol_ratio": 1.49,
-     "ret20_pct": 5.26,
-     "value20_e8": 4.28,
-     "foreign5": 1648,
-     "trust5": 1162,
+     "close": 221.5,
+     "chg_pct": 0.68,
+     "volume": 1869,
+     "vol_ratio": 0.63,
+     "ret20_pct": 5.98,
+     "value20_e8": 4.48,
+     "foreign5": 1684,
+     "trust5": 1374,
      "fut": true,
      "warrant": false,
      "index": []
-    },
-    {
-     "id": "1476",
-     "name": "儒鴻",
-     "industry": "紡織纖維",
-     "market": "上市",
-     "close": 364.0,
-     "chg_pct": -5.33,
-     "volume": 3840,
-     "vol_ratio": 1.0,
-     "ret20_pct": 12.17,
-     "value20_e8": 9.91,
-     "foreign5": -2028,
-     "trust5": 4321,
-     "fut": true,
-     "warrant": false,
-     "index": [
-      "mid100"
-     ]
     }
    ]
   }
