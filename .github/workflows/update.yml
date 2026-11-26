@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 340
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy2.outputs.page_url }}
     env:
       TZ: Asia/Taipei
       FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
@@ -66,14 +66,6 @@ jobs:
       - name: 組合網站
         run: cp index.html site/index.html
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - name: 發布網站
-        id: deploy
-        uses: actions/deploy-pages@v4
-
       - name: 記錄更新狀態（同時避免排程因 60 天無活動被停用）
         run: |
           python - <<'PY'
@@ -89,3 +81,30 @@ jobs:
           git add status.json picks.json
           git commit -m "資料更新 $(date +%F)" || echo "沒有變更"
           git push || echo "推送失敗（不影響網站）"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: 發布網站
+        id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: 發布失敗時等 2 分鐘
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 120
+
+      - name: 重新發布網站（第 2 次）
+        id: deploy2
+        if: steps.deploy.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: 再等 5 分鐘
+        if: steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 300
+
+      - name: 重新發布網站（第 3 次）
+        if: steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        uses: actions/deploy-pages@v4
