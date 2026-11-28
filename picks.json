@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-26",
- "generated": "2026-11-27 08:42",
+ "asof": "2026-11-27",
+ "generated": "2026-11-28 08:21",
  "universe": 1980,
  "strategies": {
   "強勢多頭": {
@@ -10,59 +10,21 @@
   },
   "法人認養": {
    "rule": "投信連續買超 3 日、三大法人近 5 日合計買超 ≥ 500 張、站上 20 日均線、20 日均成交值 ≥ 0.5 億",
-   "count": 5,
+   "count": 2,
    "stocks": [
-    {
-     "id": "3231",
-     "name": "緯創",
-     "industry": "電腦及週邊設備業",
-     "market": "上市",
-     "close": 167.0,
-     "chg_pct": 9.87,
-     "volume": 35291,
-     "vol_ratio": 1.35,
-     "ret20_pct": -11.41,
-     "value20_e8": 50.35,
-     "foreign5": -6288,
-     "trust5": 4555,
-     "fut": true,
-     "warrant": false,
-     "index": [
-      "tw50"
-     ]
-    },
     {
      "id": "2412",
      "name": "中華電",
      "industry": "電子工業",
      "market": "上市",
-     "close": 166.5,
-     "chg_pct": 1.83,
-     "volume": 53025,
-     "vol_ratio": 1.18,
-     "ret20_pct": 5.38,
-     "value20_e8": 40.7,
-     "foreign5": -38346,
-     "trust5": 68938,
-     "fut": true,
-     "warrant": false,
-     "index": [
-      "tw50"
-     ]
-    },
-    {
-     "id": "1216",
-     "name": "統一",
-     "industry": "食品工業",
-     "market": "上市",
-     "close": 78.5,
-     "chg_pct": -0.25,
-     "volume": 20969,
-     "vol_ratio": 0.9,
-     "ret20_pct": -0.63,
-     "value20_e8": 13.17,
-     "foreign5": -15661,
-     "trust5": 23990,
+     "close": 165.5,
+     "chg_pct": -0.6,
+     "volume": 46412,
+     "vol_ratio": 0.93,
+     "ret20_pct": 3.44,
+     "value20_e8": 43.23,
+     "foreign5": -59883,
+     "trust5": 83168,
      "fut": true,
      "warrant": false,
      "index": [
@@ -74,36 +36,19 @@
      "name": "貿聯-KY",
      "industry": "電子工業",
      "market": "上市",
-     "close": 1790.0,
-     "chg_pct": 9.82,
-     "volume": 3762,
-     "vol_ratio": 0.73,
-     "ret20_pct": 4.99,
-     "value20_e8": 60.91,
-     "foreign5": -5286,
-     "trust5": 6058,
+     "close": 1680.0,
+     "chg_pct": -6.15,
+     "volume": 3657,
+     "vol_ratio": 0.81,
+     "ret20_pct": 3.38,
+     "value20_e8": 61.53,
+     "foreign5": -5350,
+     "trust5": 6133,
      "fut": true,
      "warrant": false,
      "index": [
       "tw50"
      ]
-    },
-    {
-     "id": "9933",
-     "name": "中鼎",
-     "industry": "其他",
-     "market": "上市",
-     "close": 54.9,
-     "chg_pct": 4.57,
-     "volume": 10240,
-     "vol_ratio": 0.36,
-     "ret20_pct": 14.61,
-     "value20_e8": 10.78,
-     "foreign5": 4442,
-     "trust5": 57,
-     "fut": false,
-     "warrant": false,
-     "index": []
     }
    ]
   }
